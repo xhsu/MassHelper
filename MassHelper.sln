@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32319.34
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MassHelper", "MassHelper.vcxproj", "{38D8437E-060C-40AB-93BE-81D3B54F6339}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Debug|x64.ActiveCfg = Debug|x64
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Debug|x64.Build.0 = Debug|x64
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Debug|x86.ActiveCfg = Debug|Win32
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Debug|x86.Build.0 = Debug|Win32
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Release|x64.ActiveCfg = Release|x64
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Release|x64.Build.0 = Release|x64
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Release|x86.ActiveCfg = Release|Win32
+		{38D8437E-060C-40AB-93BE-81D3B54F6339}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8D0B39C8-BD7F-477A-8F28-17B9E292AB97}
+	EndGlobalSection
+EndGlobal
