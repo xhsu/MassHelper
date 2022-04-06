@@ -157,6 +157,7 @@ export struct MassPeak_t
 	constexpr auto operator<=> (const MassPeak_t& rhs) noexcept { return m_Value <=> rhs.m_Value; }
 	constexpr auto operator<=> (std::floating_point auto rhs) noexcept { return m_Value <=> rhs; }
 	constexpr bool operator== (const MassPeak_t& rhs) noexcept { return gcem::abs(m_Value - rhs.m_Value) <= DBL_EPSILON; }
+	constexpr bool operator== (std::floating_point auto rhs) noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
 	constexpr operator double& () noexcept { return m_Value; }
 	constexpr operator const double& () const noexcept { return m_Value; }
 };
@@ -207,6 +208,9 @@ AminoAcids_e TestNumber(double flPeakDiff) noexcept
 
 export list<pair<string, double>> TestNumber2(double flPeakDiff) noexcept
 {
+	if (flPeakDiff <= DBL_EPSILON)
+		return { { "SELF", 0.0 } };
+
 	list<pair<string, double>> rgFound{};
 
 	for (const auto& [AminoAcid, Data] : g_rgAminoAcidsData)
@@ -221,6 +225,25 @@ export list<pair<string, double>> TestNumber2(double flPeakDiff) noexcept
 	rgFound.sort([](const pair<string, double>& lhs, const pair<string, double>& rhs) -> bool { return std::abs(lhs.second) < std::abs(rhs.second); });
 	rgFound.unique([](const pair<string, double>& lhs, const pair<string, double>& rhs) -> bool { return lhs.first == rhs.first; });
 	return rgFound;
+}
+
+export string TestNumber3(double flPeakDiff) noexcept
+{
+	if (flPeakDiff <= DBL_EPSILON)
+		return "SELF";
+
+	if (auto rgPossibilities = TestNumber2(flPeakDiff); !rgPossibilities.empty())
+	{
+		string sz;
+		for (const auto& [szInfo, flDelta] : rgPossibilities)
+			sz += std::format("{}[{:.4f}], ", szInfo, flDelta);
+
+		sz.pop_back();
+		sz.pop_back();
+		return sz;
+	}
+	else
+		return "-";
 }
 
 export void IdentifyBorderIons(vector<MassPeak_t>& rgflMassData, double M_plus_1) noexcept

@@ -122,6 +122,8 @@ int main(int, char**) noexcept
 				lastPos = g_szInputMassData.find_first_not_of("\n \t", pos);
 				pos = g_szInputMassData.find_first_of("\n \t", lastPos);
 			}
+
+			std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
 		}
 
 		if (bChanged && M_Plus_1 > 0)
@@ -142,6 +144,17 @@ int main(int, char**) noexcept
 
 		if (ImGui::BeginTable("Result", 3, ImGuiTableFlags_Resizable))
 		{
+			// Showing the '0' option.
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			if (ImGui::RadioButton("Naught", SelectedPeak == 0.0))
+				SelectedPeak = MassPeak_t {};
+			ImGui::TableSetColumnIndex(1);
+			ImGui::TextUnformatted(std::to_string(-SelectedPeak.m_Value).c_str());
+			ImGui::TableSetColumnIndex(2);
+			ImGui::TextUnformatted(TestNumber3(SelectedPeak.m_Value).c_str());
+
+			// Showing actually peak.
 			for (const auto& Peak : g_rgflMassData)
 			{
 				ImGui::TableNextRow();
@@ -152,19 +165,18 @@ int main(int, char**) noexcept
 				ImGui::TableSetColumnIndex(1);
 				ImGui::TextUnformatted(std::to_string(Peak - SelectedPeak).c_str());
 				ImGui::TableSetColumnIndex(2);
-				if (auto rgPossibilities = TestNumber2(std::abs(SelectedPeak - Peak)); !rgPossibilities.empty())
-				{
-					string sz;
-					for (const auto& [szInfo, flDelta] : rgPossibilities)
-						sz += std::format("{}[{:.4f}], ", szInfo, flDelta);
-
-					sz.pop_back();
-					sz.pop_back();
-					ImGui::TextUnformatted(sz.c_str());
-				}
-				else
-					ImGui::TextUnformatted("-");
+				ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - Peak)).c_str());
 			}
+
+			// Showing the [M+1] option.
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			if (ImGui::RadioButton("[M+1]", SelectedPeak == M_Plus_1))
+				SelectedPeak = M_Plus_1;
+			ImGui::TableSetColumnIndex(1);
+			ImGui::TextUnformatted(std::to_string(M_Plus_1 - SelectedPeak).c_str());
+			ImGui::TableSetColumnIndex(2);
+			ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - M_Plus_1)).c_str());
 
 			ImGui::EndTable();
 		}
