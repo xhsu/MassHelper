@@ -1,7 +1,7 @@
 module;
 
-#include <array>
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cfloat>
 #include <concepts>
@@ -15,13 +15,18 @@ module;
 
 export module MassHelper;
 
+import UtlConcepts;
+import UtlWinConsole;
+
 using std::array;
+using std::function;
 using std::list;
 using std::pair;
 using std::string;
 using std::unordered_map;
 using std::vector;
-using std::function;
+
+export constexpr double HYDROGEN_AMU = 1.00784;
 
 export enum AminoAcids_e : char
 {
@@ -118,8 +123,7 @@ export enum IonType : char
 export struct MassPeak_t
 {
 	constexpr MassPeak_t() noexcept {}
-	constexpr MassPeak_t(std::floating_point auto v) noexcept : m_Value(v) {}
-	constexpr MassPeak_t(std::integral auto v) noexcept : m_Value(v) {}
+	constexpr MassPeak_t(Arithmetic auto v) noexcept : m_Value(v) {}
 
 	double m_Value = 0;
 	bool m_Identified = false;
@@ -155,9 +159,9 @@ export struct MassPeak_t
 	}
 
 	constexpr auto operator<=> (const MassPeak_t& rhs) noexcept { return m_Value <=> rhs.m_Value; }
-	constexpr auto operator<=> (std::floating_point auto rhs) noexcept { return m_Value <=> rhs; }
+	constexpr auto operator<=> (Arithmetic auto rhs) noexcept { return m_Value <=> rhs; }
 	constexpr bool operator== (const MassPeak_t& rhs) noexcept { return gcem::abs(m_Value - rhs.m_Value) <= DBL_EPSILON; }
-	constexpr bool operator== (std::floating_point auto rhs) noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
+	constexpr bool operator== (Arithmetic auto rhs) noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
 	constexpr operator double& () noexcept { return m_Value; }
 	constexpr operator const double& () const noexcept { return m_Value; }
 };
@@ -249,7 +253,7 @@ export string TestNumber3(double flPeakDiff) noexcept
 export void IdentifyBorderIons(vector<MassPeak_t>& rgflMassData, double M_plus_1) noexcept
 {
 	int iMPlusOne = (int)std::round(M_plus_1);
-	int iMPlusTwo = (int)std::round((M_plus_1 + 1.00784) / 2.0);
+	int iMPlusTwo = (int)std::round((M_plus_1 + HYDROGEN_AMU) / 2.0);
 
 	for (auto& Peak : rgflMassData)
 	{
@@ -337,33 +341,34 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 
 		if (AminoAcids_e iFound = TestNumber(flLastBIon - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
-			double flAccumulatedMass = 1.00784 + g_rgAminoAcidsData[iFound].m_ResidueMass;
+			double flAccumulatedMass = HYDROGEN_AMU + g_rgAminoAcidsData[iFound].m_ResidueMass;
 			for (const auto& Cell : ThisWorldline.m_Solution)
 				flAccumulatedMass += g_rgAminoAcidsData[Cell.m_AminoAcid].m_ResidueMass;
 
-			if (pfnShouldCheck(flAccumulatedMass))
-			{
-				bool bPredictedFound = false;
+			bool bPredictedFound = false;
+			//if (pfnShouldCheck(flAccumulatedMass))
+			//{
 				for (const auto& Peak : ThisWorldline.m_PendingPeaks)
 				{
 					if ((int)std::round(flAccumulatedMass) == (int)std::round(Peak))
 					{
 						bPredictedFound = true;
+						flAccumulatedMass = Peak.m_Value;	// Set to counterpart Y ion.
 						break;
 					}
 				}
-	
-				if (!bPredictedFound)
-					goto LAB_CONTINUE;
-			}
+
+			//	if (!bPredictedFound)
+			//		goto LAB_CONTINUE;
+			//}
 
 			if (!bAlreadyFoundOne)
 			{
 				bAlreadyFoundOne = true;
 				ThisWorldline.m_Solution.front().m_AminoAcid = iFound;
-				ThisWorldline.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value);
+				ThisWorldline.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value, flAccumulatedMass);
+
 				iter = ThisWorldline.m_PendingPeaks.erase(iter);
-				//auto s1 = ThisWorldline.m_PendingPeaks.size(), s2 = ThisWorldline.m_Solution.size();
 				continue;
 			}
 			else
@@ -372,9 +377,9 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 
 				AlternativeReality_t& OtherWorld = rgWorldlines.back();
 				OtherWorld.m_Solution.front().m_AminoAcid = iFound;
-				OtherWorld.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value);
+				OtherWorld.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value, flAccumulatedMass);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
-				//auto s1 = OtherWorld.m_PendingPeaks.size(), s2 = OtherWorld.m_Solution.size();
+
 				fnRecursiveB(rgWorldlines, OtherWorld, pfnShouldCheck);
 			}
 		}
@@ -400,33 +405,34 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 
 		if (AminoAcids_e iFound = TestNumber(flLastYIon - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
-			double flAccumulatedMass = 1.00784 + g_rgAminoAcidsData[iFound].m_ResidueMass;
+			double flAccumulatedMass = HYDROGEN_AMU + g_rgAminoAcidsData[iFound].m_ResidueMass;
 			for (const auto& Cell : ThisWorldline.m_Solution)
 				flAccumulatedMass += g_rgAminoAcidsData[Cell.m_AminoAcid].m_ResidueMass;
 
-			if (pfnShouldCheck(flAccumulatedMass))
-			{
-				bool bPredictedFound = false;
+			bool bPredictedFound = false;
+			//if (pfnShouldCheck(flAccumulatedMass))
+			//{
 				for (const auto& Peak : ThisWorldline.m_PendingPeaks)
 				{
 					if ((int)std::round(flAccumulatedMass) == (int)std::round(Peak))
 					{
 						bPredictedFound = true;
+						flAccumulatedMass = Peak.m_Value;	// Set to counterpart B ion.
 						break;
 					}
 				}
 
-				if (!bPredictedFound)
-					goto LAB_CONTINUE;
-			}
+			//	if (!bPredictedFound)
+			//		goto LAB_CONTINUE;
+			//}
 
 			if (!bAlreadyFoundOne)
 			{
 				bAlreadyFoundOne = true;
 				ThisWorldline.m_Solution.back().m_AminoAcid = iFound;
-				ThisWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value);
-				iter = ThisWorldline.m_PendingPeaks.erase(iter);
+				ThisWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, flAccumulatedMass, iter->m_Value);
 
+				iter = ThisWorldline.m_PendingPeaks.erase(iter);
 				continue;
 			}
 			else
@@ -435,7 +441,7 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 
 				AlternativeReality_t& OtherWorld = rgWorldlines.back();
 				OtherWorld.m_Solution.back().m_AminoAcid = iFound;
-				OtherWorld.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value);
+				OtherWorld.m_Solution.emplace_back(NOT_AN_AMINO_ACID, flAccumulatedMass, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
 				fnRecursiveY(rgWorldlines, OtherWorld, pfnShouldCheck);
@@ -454,7 +460,7 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 {
 	vector<MassPeak_t> rgflMassData2 = rgflMassData;
 	int iMPlusOne = (int)std::round(M_Plus_1);
-	int iMPlusTwo = (int)std::round((M_Plus_1 + 1.00784) / 2.0);
+	int iMPlusTwo = (int)std::round((M_Plus_1 + HYDROGEN_AMU) / 2.0);
 
 	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); /* Does nothing. */)
 	{
@@ -531,31 +537,41 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 	{
 		for (const auto& Cell : Worldline.m_Solution)
 		{
-			std::cout << Cell.m_bTypeIon << '\t';
+			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_bTypeIon) != rgflMassData2.cend())
+				cout_w() << Cell.m_bTypeIon << '\t';
+			else
+				cout_pink() << Cell.m_bTypeIon << '\t';
 		}
 
-		std::cout << '\n';
+		cout_w() << '\n';
 
 		for (const auto& Cell : Worldline.m_Solution)
 		{
-			std::cout << Cell.m_AminoAcid << '\t';
+			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_bTypeIon) != rgflMassData2.cend()
+				&& std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_yTypeIon) != rgflMassData2.cend())
+				cout_g() << Cell.m_AminoAcid << '\t';
+			else
+				cout_gold() << Cell.m_AminoAcid << '\t';
 		}
 
-		std::cout << '\n';
+		cout_w() << '\n';
 		
 		for (const auto& Cell : Worldline.m_Solution)
 		{
-			std::cout << Cell.m_yTypeIon << '\t';
+			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_yTypeIon) != rgflMassData2.cend())
+				cout_w() << Cell.m_yTypeIon << '\t';
+			else
+				cout_pink() << Cell.m_yTypeIon << '\t';
 		}
 
-		std::cout << "\nLeft peaks: ";
+		cout_gray() << "\nLeft peaks: ";
 		for (const auto& Peak : Worldline.m_PendingPeaks)
 		{
-			std::cout << Peak.m_Value << ", ";
+			cout_gray() << Peak.m_Value << ", ";
 		}
 
-		std::cout << '\n';
-		std::cout << '\n';
+		cout_w() << '\n';
+		cout_w() << '\n';
 	}
 }
 

@@ -9,6 +9,9 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Hydeogenium">
+      <UniqueIdentifier>{ed9a8f04-6467-4767-aa1c-22c13296f334}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -40,6 +43,12 @@
     </ClCompile>
     <ClCompile Include="MassHelper.ixx">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlWinConsole.ixx">
+      <Filter>Hydeogenium</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

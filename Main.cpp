@@ -1,5 +1,6 @@
-#include <iostream>
+#include <algorithm>
 #include <format>
+#include <iostream>
 #include <vector>
 
 #include <imgui.h>
@@ -45,10 +46,13 @@ vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 
 double M_Plus_1 = 1785.8436;
 string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
 
-double M_Plus_2 = (M_Plus_1 + 1.00784) / 2.0;
+double M_Plus_2 = (M_Plus_1 + HYDROGEN_AMU) / 2.0;
 
 int main(int, char**) noexcept
 {
+	// 101 basically setup for ANY C++ project.
+	std::ios_base::sync_with_stdio(false);
+
 	// Setup window
 	glfwSetErrorCallback([](int error, const char* description) { LOG_ERROR("Error {}: {}\n", error, description); });
 
@@ -91,7 +95,7 @@ int main(int, char**) noexcept
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::ShowDemoWindow();
+//		ImGui::ShowDemoWindow();
 
 		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 		ImGui::Begin("Mass Helper");
@@ -99,13 +103,13 @@ int main(int, char**) noexcept
 		if (ImGui::InputDouble("[M+1] ion mass", &M_Plus_1))
 		{
 			bChanged = true;
-			M_Plus_2 = (M_Plus_1 + 1.00784) / 2.0;
+			M_Plus_2 = (M_Plus_1 + HYDROGEN_AMU) / 2.0;
 		}
 
 		if (ImGui::InputDouble("[M+2] ion mass", &M_Plus_2))
 		{
 			bChanged = true;
-			M_Plus_1 = M_Plus_2 * 2 - 1.00784;
+			M_Plus_1 = M_Plus_2 * 2 - HYDROGEN_AMU;
 		}
 
 		if (ImGui::InputTextMultiline("Peaks", &g_szInputMassData))
@@ -126,7 +130,7 @@ int main(int, char**) noexcept
 			std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
 		}
 
-		if (bChanged && M_Plus_1 > 0)
+		if (ImGui::Button("Deduce") && M_Plus_1 > 0)
 		{
 			//std::cout << "\n\nNew analysis begin:\n";
 			//IdentifyBorderIons(g_rgflMassData, M_plus_1);
@@ -134,6 +138,7 @@ int main(int, char**) noexcept
 			//RecursiveIdentify(g_rgflMassData, IonType::y, -2);
 			//ParseSpectrum<IonType::y>(g_rgflMassData, M_plus_1);
 			//ParseSpectrum<IonType::b>(g_rgflMassData, M_plus_1);
+
 			Solve(g_rgflMassData, M_Plus_1);
 		}
 
