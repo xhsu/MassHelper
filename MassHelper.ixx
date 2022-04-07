@@ -190,6 +190,50 @@ export struct AlternativeReality_t
 	double m_MPlusOne = 0;
 	vector<MassPeak_t> m_PendingPeaks{};
 	list<Cell_t> m_Solution{};
+
+	string Conclude(void) const noexcept // Get a string conposed of amino acids.
+	{
+		string ret;
+		ret.resize(m_Solution.size());
+		ret.clear();
+
+		for (const auto& Cell : m_Solution)
+		{
+			switch (Cell.m_AminoAcid)
+			{
+			case NOT_AN_AMINO_ACID:
+				continue;
+
+			case Isoleucine:
+			case Leucine:
+				ret.push_back(Isoleucine);
+				break;
+
+			case Lysine:
+			case Glutamine:
+				ret.push_back(Lysine);
+				break;
+
+			case Methionine_Sulfoxide:
+			case Phenylalanine:
+				ret.push_back(Phenylalanine);
+				break;
+
+			default:
+				ret.push_back(Cell.m_AminoAcid);
+				break;
+			}
+		}
+
+		return ret;
+	}
+};
+
+struct Explanation_t
+{
+	string m_First {};
+	string m_Second {};
+	size_t m_Overlapping = 0U;
 };
 
 AminoAcids_e TestNumber(double flPeakDiff) noexcept
@@ -456,6 +500,44 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 		fnRecursiveY(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
+void PrintWorldline(const AlternativeReality_t& Worldline, const vector<MassPeak_t>& rgflOriginalMassData) noexcept
+{
+	for (const auto& Cell : Worldline.m_Solution)
+	{
+		if (std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_bTypeIon) != rgflOriginalMassData.cend())
+			cout_w() << Cell.m_bTypeIon << '\t';
+		else
+			cout_pink() << Cell.m_bTypeIon << '\t';
+	}
+
+	cout_w() << '\n';
+
+	for (const auto& Cell : Worldline.m_Solution)
+	{
+		if (std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_bTypeIon) != rgflOriginalMassData.cend()
+			&& std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_yTypeIon) != rgflOriginalMassData.cend())
+			cout_g() << Cell.m_AminoAcid << '\t';
+		else
+			cout_gold() << Cell.m_AminoAcid << '\t';
+	}
+
+	cout_w() << '\n';
+
+	for (const auto& Cell : Worldline.m_Solution)
+	{
+		if (std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_yTypeIon) != rgflOriginalMassData.cend())
+			cout_w() << Cell.m_yTypeIon << '\t';
+		else
+			cout_pink() << Cell.m_yTypeIon << '\t';
+	}
+
+	cout_gray() << "\nLeft peaks: ";
+	for (const auto& Peak : Worldline.m_PendingPeaks)
+	{
+		cout_gray() << Peak.m_Value << ", ";
+	}
+}
+
 export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexcept
 {
 	vector<MassPeak_t> rgflMassData2 = rgflMassData;
@@ -475,8 +557,8 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 	}
 	std::sort(rgflMassData2.begin(), rgflMassData2.end(), std::greater<MassPeak_t>());
 
-	list<AlternativeReality_t> rgWorldlines{ AlternativeReality_t{} };
-	AlternativeReality_t& FirstBWorldline = rgWorldlines.front();
+	list<AlternativeReality_t> rgBSideGuesses{ AlternativeReality_t{} };
+	AlternativeReality_t& FirstBWorldline = rgBSideGuesses.front();
 	FirstBWorldline.m_PendingPeaks = rgflMassData2;
 	FirstBWorldline.m_MPlusOne = M_Plus_1;
 
@@ -512,16 +594,17 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 
 	assert(FirstBWorldline.m_Solution.size() == 1 || FirstBWorldline.m_Solution.size() == 2);
 
-	fnRecursiveB(rgWorldlines, FirstBWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
+	fnRecursiveB(rgBSideGuesses, FirstBWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
 
+	list<AlternativeReality_t> rgYSideGuesses {};
 	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); ++iter)
 	{
 		if (AminoAcids_e iFound = TestNumber(M_Plus_1 - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
 			std::cout << std::format("{} could be the y[n-1] ion and N-terminal amino acid could be {}.\n", iter->m_Value, g_rgAminoAcidsData[iFound].m_3Letters);
 
-			rgWorldlines.emplace_back();
-			AlternativeReality_t& AnotherYWorldline = rgWorldlines.back();
+			rgYSideGuesses.emplace_back();
+			AlternativeReality_t& AnotherYWorldline = rgYSideGuesses.back();
 			AnotherYWorldline.m_PendingPeaks = rgflMassData2;
 			AnotherYWorldline.m_MPlusOne = M_Plus_1;
 
@@ -529,50 +612,41 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 			AnotherYWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value /* y[n-1] */);
 			AnotherYWorldline.m_PendingPeaks.erase(std::find(AnotherYWorldline.m_PendingPeaks.begin(), AnotherYWorldline.m_PendingPeaks.end(), *iter));
 
-			fnRecursiveY(rgWorldlines, AnotherYWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
+			fnRecursiveY(rgYSideGuesses, AnotherYWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
 		}
 	}
 
-	for (const auto& Worldline : rgWorldlines)
+	list<Explanation_t> rgExplanations {};
+
+	for (const auto& Worldline : rgYSideGuesses)
 	{
-		for (const auto& Cell : Worldline.m_Solution)
+		auto szSequence = Worldline.Conclude();
+		for (const auto& WorldlineCompareWith : rgBSideGuesses)
 		{
-			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_bTypeIon) != rgflMassData2.cend())
-				cout_w() << Cell.m_bTypeIon << '\t';
-			else
-				cout_pink() << Cell.m_bTypeIon << '\t';
+			auto szSeqCompareWith = WorldlineCompareWith.Conclude();
+			auto pszSeqCompW = szSeqCompareWith.c_str();
+			for (const char* pszSeq = szSequence.c_str(); *pszSeq != '\0'; ++pszSeq)
+			{
+				if (auto iLength = strlen(pszSeq); iLength > 1 && !strncmp(pszSeq, pszSeqCompW, iLength))
+					rgExplanations.emplace_back(szSequence, szSeqCompareWith, iLength);
+			}
 		}
-
-		cout_w() << '\n';
-
-		for (const auto& Cell : Worldline.m_Solution)
-		{
-			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_bTypeIon) != rgflMassData2.cend()
-				&& std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_yTypeIon) != rgflMassData2.cend())
-				cout_g() << Cell.m_AminoAcid << '\t';
-			else
-				cout_gold() << Cell.m_AminoAcid << '\t';
-		}
-
-		cout_w() << '\n';
-		
-		for (const auto& Cell : Worldline.m_Solution)
-		{
-			if (std::find(rgflMassData2.cbegin(), rgflMassData2.cend(), Cell.m_yTypeIon) != rgflMassData2.cend())
-				cout_w() << Cell.m_yTypeIon << '\t';
-			else
-				cout_pink() << Cell.m_yTypeIon << '\t';
-		}
-
-		cout_gray() << "\nLeft peaks: ";
-		for (const auto& Peak : Worldline.m_PendingPeaks)
-		{
-			cout_gray() << Peak.m_Value << ", ";
-		}
-
-		cout_w() << '\n';
-		cout_w() << '\n';
 	}
+
+	rgExplanations.sort([](const Explanation_t& lhs, const Explanation_t& rhs) -> bool { return lhs.m_Overlapping > rhs.m_Overlapping; });
+
+	for (const auto& Explanation : rgExplanations)
+	{
+		cout_w() << Explanation.m_First << " - " << Explanation.m_Second << '\n';
+	}
+
+	//for (const auto& Worldline : rgWorldlines)
+	//{
+	//	PrintWorldline(Worldline, rgflMassData2);
+
+	//	cout_w() << '\n';
+	//	cout_w() << '\n';
+	//}
 }
 
 export template<IonType iType>
