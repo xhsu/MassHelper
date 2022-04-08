@@ -12,6 +12,7 @@
 #define LOG_ERROR(text, ...)	std::cout << std::format(text, __VA_ARGS__)
 
 import MassHelper;
+import PeriodicTable;
 
 using std::vector;
 using std::string;
@@ -46,7 +47,113 @@ vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 
 double M_Plus_1 = 1785.8436;
 string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
 
-double M_Plus_2 = (M_Plus_1 + HYDROGEN_AMU) / 2.0;
+double M_Plus_2 = (M_Plus_1 + amu::Hydrogen) / 2.0;
+
+void DrawInputWindow(void) noexcept
+{
+	bool bChanged = false;
+
+	ImGui::Begin("Input");
+
+	if (ImGui::InputDouble("[M+1] ion mass", &M_Plus_1))
+	{
+		bChanged = true;
+		M_Plus_2 = (M_Plus_1 + amu::Hydrogen) / 2.0;
+	}
+
+	if (ImGui::InputDouble("[M+2] ion mass", &M_Plus_2))
+	{
+		bChanged = true;
+		M_Plus_1 = M_Plus_2 * 2 - amu::Hydrogen;
+	}
+
+	if (ImGui::InputTextMultiline("Peaks", &g_szInputMassData))
+	{
+		bChanged = true;
+		g_rgflMassData.clear();
+
+		auto lastPos = g_szInputMassData.find_first_not_of(",\n \t", 0);
+		auto pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
+
+		while (string::npos != pos || string::npos != lastPos)
+		{
+			g_rgflMassData.emplace_back(std::stod(g_szInputMassData.substr(lastPos, pos - lastPos)));
+			lastPos = g_szInputMassData.find_first_not_of("\n \t", pos);
+			pos = g_szInputMassData.find_first_of("\n \t", lastPos);
+		}
+
+		std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
+	}
+
+	if (ImGui::Button("Deduce") && M_Plus_1 > 0)
+	{
+		//std::cout << "\n\nNew analysis begin:\n";
+		//IdentifyBorderIons(g_rgflMassData, M_plus_1);
+		//RecursiveIdentify(g_rgflMassData, IonType::b, -2);
+		//RecursiveIdentify(g_rgflMassData, IonType::y, -2);
+		//ParseSpectrum<IonType::y>(g_rgflMassData, M_plus_1);
+		//ParseSpectrum<IonType::b>(g_rgflMassData, M_plus_1);
+
+		Solve(g_rgflMassData, M_Plus_1);
+	}
+
+	ImGui::NewLine();
+	ImGui::NewLine();
+
+	static MassPeak_t SelectedPeak{};
+
+	if (ImGui::BeginTable("Result", 3, ImGuiTableFlags_Resizable))
+	{
+		// Showing the '0' option.
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		if (ImGui::RadioButton("Naught", SelectedPeak == 0.0))
+			SelectedPeak = MassPeak_t{};
+		ImGui::TableSetColumnIndex(1);
+		ImGui::TextUnformatted(std::to_string(-SelectedPeak.m_Value).c_str());
+		ImGui::TableSetColumnIndex(2);
+		ImGui::TextUnformatted(TestNumber3(SelectedPeak.m_Value).c_str());
+
+		// Showing actually peak.
+		for (const auto& Peak : g_rgflMassData)
+		{
+			ImGui::TableNextRow();
+
+			ImGui::TableSetColumnIndex(0);
+			if (ImGui::RadioButton(std::to_string(Peak.m_Value).c_str(), SelectedPeak == Peak))
+				SelectedPeak = Peak;
+			ImGui::TableSetColumnIndex(1);
+			ImGui::TextUnformatted(std::to_string(Peak - SelectedPeak).c_str());
+			ImGui::TableSetColumnIndex(2);
+			ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - Peak)).c_str());
+		}
+
+		// Showing the [M+1] option.
+		ImGui::TableNextRow();
+		ImGui::TableSetColumnIndex(0);
+		if (ImGui::RadioButton("[M+1]", SelectedPeak == M_Plus_1))
+			SelectedPeak = M_Plus_1;
+		ImGui::TableSetColumnIndex(1);
+		ImGui::TextUnformatted(std::to_string(M_Plus_1 - SelectedPeak).c_str());
+		ImGui::TableSetColumnIndex(2);
+		ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - M_Plus_1)).c_str());
+
+		ImGui::EndTable();
+	}
+
+	ImGui::End();
+}
+
+void DrawAnalyzeWindow(void) noexcept
+{
+	ImGui::Begin("Analyze");
+
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H]: {}", M_Plus_1).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {}", M_Plus_1 - amu::Hydrogen * 2 - amu::Oxygen).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {}", M_Plus_1 - amu::Hydrogen * 3 - amu::Nitrogen).c_str());
+
+	ImGui::End();
+}
 
 int main(int, char**) noexcept
 {
@@ -59,7 +166,7 @@ int main(int, char**) noexcept
 	if (!glfwInit())
 		return EXIT_FAILURE;
 
-	GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL2 example", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1280, 720, "Mass Helper", NULL, NULL);
 	if (!window)
 		return EXIT_FAILURE;
 
@@ -81,8 +188,6 @@ int main(int, char**) noexcept
 	// Main loop
 	while (!glfwWindowShouldClose(window))
 	{
-		bool bChanged = false;
-
 		// Poll and handle events (inputs, window resize, etc.)
 		// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 		// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
@@ -95,98 +200,11 @@ int main(int, char**) noexcept
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-//		ImGui::ShowDemoWindow();
+		ImGui::ShowDemoWindow();
 
-		// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
-		ImGui::Begin("Mass Helper");
-
-		if (ImGui::InputDouble("[M+1] ion mass", &M_Plus_1))
-		{
-			bChanged = true;
-			M_Plus_2 = (M_Plus_1 + HYDROGEN_AMU) / 2.0;
-		}
-
-		if (ImGui::InputDouble("[M+2] ion mass", &M_Plus_2))
-		{
-			bChanged = true;
-			M_Plus_1 = M_Plus_2 * 2 - HYDROGEN_AMU;
-		}
-
-		if (ImGui::InputTextMultiline("Peaks", &g_szInputMassData))
-		{
-			bChanged = true;
-			g_rgflMassData.clear();
-
-			auto lastPos = g_szInputMassData.find_first_not_of(",\n \t", 0);
-			auto pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
-
-			while (string::npos != pos || string::npos != lastPos)
-			{
-				g_rgflMassData.emplace_back(std::stod(g_szInputMassData.substr(lastPos, pos - lastPos)));
-				lastPos = g_szInputMassData.find_first_not_of("\n \t", pos);
-				pos = g_szInputMassData.find_first_of("\n \t", lastPos);
-			}
-
-			std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
-		}
-
-		if (ImGui::Button("Deduce") && M_Plus_1 > 0)
-		{
-			//std::cout << "\n\nNew analysis begin:\n";
-			//IdentifyBorderIons(g_rgflMassData, M_plus_1);
-			//RecursiveIdentify(g_rgflMassData, IonType::b, -2);
-			//RecursiveIdentify(g_rgflMassData, IonType::y, -2);
-			//ParseSpectrum<IonType::y>(g_rgflMassData, M_plus_1);
-			//ParseSpectrum<IonType::b>(g_rgflMassData, M_plus_1);
-
-			Solve(g_rgflMassData, M_Plus_1);
-		}
-
-		ImGui::NewLine();
-		ImGui::NewLine();
-
-		static MassPeak_t SelectedPeak{};
-
-		if (ImGui::BeginTable("Result", 3, ImGuiTableFlags_Resizable))
-		{
-			// Showing the '0' option.
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			if (ImGui::RadioButton("Naught", SelectedPeak == 0.0))
-				SelectedPeak = MassPeak_t {};
-			ImGui::TableSetColumnIndex(1);
-			ImGui::TextUnformatted(std::to_string(-SelectedPeak.m_Value).c_str());
-			ImGui::TableSetColumnIndex(2);
-			ImGui::TextUnformatted(TestNumber3(SelectedPeak.m_Value).c_str());
-
-			// Showing actually peak.
-			for (const auto& Peak : g_rgflMassData)
-			{
-				ImGui::TableNextRow();
-
-				ImGui::TableSetColumnIndex(0);
-				if (ImGui::RadioButton(std::to_string(Peak.m_Value).c_str(), SelectedPeak == Peak))
-					SelectedPeak = Peak;
-				ImGui::TableSetColumnIndex(1);
-				ImGui::TextUnformatted(std::to_string(Peak - SelectedPeak).c_str());
-				ImGui::TableSetColumnIndex(2);
-				ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - Peak)).c_str());
-			}
-
-			// Showing the [M+1] option.
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			if (ImGui::RadioButton("[M+1]", SelectedPeak == M_Plus_1))
-				SelectedPeak = M_Plus_1;
-			ImGui::TableSetColumnIndex(1);
-			ImGui::TextUnformatted(std::to_string(M_Plus_1 - SelectedPeak).c_str());
-			ImGui::TableSetColumnIndex(2);
-			ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - M_Plus_1)).c_str());
-
-			ImGui::EndTable();
-		}
-
-		ImGui::End();
+		// Input window.
+		DrawInputWindow();
+		DrawAnalyzeWindow();
 
 		// Rendering
 		ImGui::Render();

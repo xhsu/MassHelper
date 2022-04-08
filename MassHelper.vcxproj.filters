@@ -50,6 +50,9 @@
     <ClCompile Include="..\Hydrogenium\UtlWinConsole.ixx">
       <Filter>Hydeogenium</Filter>
     </ClCompile>
+    <ClCompile Include="PeriodicTable.ixx">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">
