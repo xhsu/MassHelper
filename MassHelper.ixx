@@ -171,70 +171,49 @@ struct Cell_t
 	constexpr Cell_t() noexcept {}
 	constexpr Cell_t(AminoAcids_e what, double b = 0, double y = 0) noexcept : m_AminoAcid(what), m_bTypeIon(b), m_yTypeIon(y) {}
 
-	double m_aTypeIon = 0;
-	double m_bAsteriskIon = 0;
-	double m_bCircleIon = 0;
+	double m_aTypeIon = 0;	// Subtract -CO-
+	double m_bAsteriskIon = 0;	// -Ammonia
+	double m_bCircleIon = 0;	// -Water
 	double m_bTypeIon = 0;	// Including this amino acid Coule be b[n] i.e. [M+1] ion itself.
 	AminoAcids_e m_AminoAcid = NOT_AN_AMINO_ACID;
 	double m_yTypeIon = 0;	// Including this amino acid. Could be y[n] i.e. [M+1] ion itself.
-	double m_yCircleIon = 0;
-	double m_yAsteriskIon = 0;
+	double m_yCircleIon = 0;	// -Water
+	double m_yAsteriskIon = 0;	// -Ammonia
+
+	void Deduce(void) noexcept
+	{
+		if (!m_aTypeIon)
+			m_aTypeIon = m_bTypeIon - amu::Carbon - amu::Oxygen;
+		if (!m_bAsteriskIon)
+			m_bAsteriskIon = m_bTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
+		if (!m_bCircleIon)
+			m_bCircleIon = m_bTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
+
+		if (!m_yCircleIon)
+			m_yCircleIon = m_yTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
+		if (!m_yAsteriskIon)
+			m_yAsteriskIon = m_yTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
+	}
 
 	constexpr bool Filled(void) const noexcept { return m_AminoAcid != NOT_AN_AMINO_ACID && (m_bTypeIon != 0 || m_yTypeIon != 0); }
-	constexpr bool Explained(double flPeak) const noexcept { return m_aTypeIon == flPeak || m_bAsteriskIon == flPeak || m_bCircleIon == flPeak || m_bTypeIon == flPeak || m_yTypeIon == flPeak || m_yCircleIon == flPeak || m_yAsteriskIon == flPeak; }
+	//constexpr bool Explained(double flPeak) const noexcept { return m_aTypeIon == flPeak || m_bAsteriskIon == flPeak || m_bCircleIon == flPeak || m_bTypeIon == flPeak || m_yTypeIon == flPeak || m_yCircleIon == flPeak || m_yAsteriskIon == flPeak; }
+	constexpr bool Explained(double flPeak) const noexcept { return !(bool)gcem::round(flPeak - m_aTypeIon) || !(bool)gcem::round(flPeak - m_bAsteriskIon) || !(bool)gcem::round(flPeak - m_bCircleIon) || !(bool)gcem::round(flPeak - m_bTypeIon) || !(bool)gcem::round(flPeak - m_yTypeIon) || !(bool)gcem::round(flPeak - m_yCircleIon) || !(bool)gcem::round(flPeak - m_yAsteriskIon); }
 
 	constexpr bool operator==(const Cell_t& rhs) const noexcept { return m_AminoAcid == rhs.m_AminoAcid; }
 };
 
 export struct AlternativeReality_t
 {
+	AlternativeReality_t(void) noexcept {}
+	AlternativeReality_t& operator=(const AlternativeReality_t& rhs) noexcept { m_MPlusOne = rhs.m_MPlusOne; m_PendingPeaks = rhs.m_PendingPeaks; m_Solution = rhs.m_Solution; return *this; }
+	AlternativeReality_t& operator=(AlternativeReality_t&& rhs) noexcept { m_MPlusOne = rhs.m_MPlusOne; std::swap(m_PendingPeaks, rhs.m_PendingPeaks); std::swap(m_Solution, rhs.m_Solution); return *this; }
+	AlternativeReality_t(const AlternativeReality_t& rhs) noexcept : m_MPlusOne(rhs.m_MPlusOne), m_PendingPeaks(rhs.m_PendingPeaks), m_Solution(rhs.m_Solution) {}
+	AlternativeReality_t(AlternativeReality_t&& rhs) noexcept : m_MPlusOne(rhs.m_MPlusOne), m_PendingPeaks(std::move(rhs.m_PendingPeaks)), m_Solution(std::move(rhs.m_Solution)) {}
+	~AlternativeReality_t(void) noexcept {}
+
 	double m_MPlusOne = 0;
 	vector<MassPeak_t> m_PendingPeaks{};
 	vector<Cell_t> m_Solution{};
-
-	string Conclude(void) const noexcept // Get a string conposed of amino acids.
-	{
-		string ret;
-		ret.resize(m_Solution.size());
-		ret.clear();
-
-		for (const auto& Cell : m_Solution)
-		{
-			switch (Cell.m_AminoAcid)
-			{
-			case NOT_AN_AMINO_ACID:
-				continue;
-
-			case Isoleucine:
-			case Leucine:
-				ret.push_back(Isoleucine);
-				break;
-
-			case Lysine:
-			case Glutamine:
-				ret.push_back(Lysine);
-				break;
-
-			case Methionine_Sulfoxide:
-			case Phenylalanine:
-				ret.push_back(Phenylalanine);
-				break;
-
-			default:
-				ret.push_back(Cell.m_AminoAcid);
-				break;
-			}
-		}
-
-		return ret;
-	}
-};
-
-struct Explanation_t
-{
-	string m_First {};
-	string m_Second {};
-	size_t m_Overlapping = 0U;
 };
 
 AminoAcids_e TestNumber(double flPeakDiff) noexcept
@@ -293,6 +272,126 @@ export string TestNumber3(double flPeakDiff) noexcept
 	}
 	else
 		return "-";
+}
+
+export double MolecularWeight(const string& szSeq) noexcept
+{
+	double ret = amu::Hydrogen * 2 + amu::Oxygen;	// Add H to -NH-, Add -OH to -CO-
+
+	for (auto AminoAcid : szSeq)
+	{
+		switch (AminoAcid)
+		{
+		case Glycine:
+		case Alanine:
+		case Serine:
+		case Proline:
+		case Valine:
+		case Threonine:
+		case Cysteine:
+		case Isoleucine:
+		case Leucine:
+		case Asparagine:
+		case Aspartic_Acid:
+		case Lysine:
+		case Glutamine:
+		case Glutamic_Acid:
+		case Methionine:
+		case Histidine:
+		case Methionine_Sulfoxide:
+		case Phenylalanine:
+		case Arginine:
+		case Carboxyethyl_Cysteine:
+		case Tyrosine:
+		case Tryptophan:
+			ret += g_rgAminoAcidsData[AminoAcid].m_ResidueMass;
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	return ret;
+}
+
+// Get a polypeptide sequence as string.
+template<typename T> string Conclude(const T& rgCells) noexcept
+{
+	string ret;
+	ret.resize(rgCells.size());
+	ret.clear();
+
+	for (const auto& Cell : rgCells)
+	{
+		switch (Cell.m_AminoAcid)
+		{
+		case NOT_AN_AMINO_ACID:
+			continue;
+
+		case Isoleucine:
+		case Leucine:
+			ret.push_back(Isoleucine);
+			break;
+
+		case Lysine:
+		case Glutamine:
+			ret.push_back(Lysine);
+			break;
+
+		case Methionine_Sulfoxide:
+		case Phenylalanine:
+			ret.push_back(Phenylalanine);
+			break;
+
+		default:
+			ret.push_back(Cell.m_AminoAcid);
+			break;
+		}
+	}
+
+	return ret;
+}
+
+template<typename T, typename U> bool AllPeaksExplained(const T& rgflMassPeaks, const U& rgCells) noexcept
+{
+	size_t iCount = 0;
+
+	cout_cyan() << Conclude(rgCells) << " checks: ";
+
+	for (const auto& Peak : rgflMassPeaks)
+	{
+		const auto fn = [&Peak](const Cell_t& Cell) -> bool
+		{
+			return Cell.Explained(Peak);
+		};
+
+		size_t v = std::find_if(rgCells.cbegin(), rgCells.cend(), fn) != rgCells.cend();
+		if (!v)
+			cout_cyan() << std::format("[{}] ", Peak.m_Value);
+		iCount += v;
+	}
+
+	cout_cyan() << '(' << iCount << '/' << rgflMassPeaks.size() << ")\n";
+
+	return iCount == rgflMassPeaks.size();
+}
+
+template<typename T, typename U> T FilterUnexplainablePeaks(const T& rgflMassPeaks, const U& rgCells) noexcept
+{
+	T ret = rgflMassPeaks;
+
+	for (auto iter = ret.begin(); iter != ret.end(); /* Does nothing. */)
+	{
+		const auto fn = [&iter](const Cell_t& Cell) -> bool { return Cell.Explained(*iter); };
+
+		if (std::find_if(rgCells.cbegin(), rgCells.cend(), fn) == rgCells.cend())
+			++iter;	// No found == keep it.
+		else
+			iter = ret.erase(iter);
+	}
+
+	return ret;
 }
 
 export void IdentifyBorderIons(vector<MassPeak_t>& rgflMassData, double M_plus_1) noexcept
@@ -376,13 +475,13 @@ export void IdentifyBorderIons(vector<MassPeak_t>& rgflMassData, double M_plus_1
 void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
-	double flLastBIon = ThisWorldline.m_Solution.front().m_bTypeIon;
-	double flLastYIon = ThisWorldline.m_Solution[1].m_yTypeIon;
+	double flFrontierPeak = ThisWorldline.m_Solution.front().m_bTypeIon;
+	double flVarificationPeak = ThisWorldline.m_Solution[1].m_yTypeIon;
 	AlternativeReality_t ThisCopy = ThisWorldline;
 
 	for (auto iter = ThisWorldline.m_PendingPeaks.begin(); iter != ThisWorldline.m_PendingPeaks.end(); /* Does nothing. */)
 	{
-		if (*iter >= flLastBIon)
+		if (*iter >= flFrontierPeak)
 			goto LAB_CONTINUE;
 
 		for (const auto& Cell : ThisWorldline.m_Solution)
@@ -394,9 +493,9 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 			}
 		}
 
-		if (AminoAcids_e iFound = TestNumber(flLastBIon - *iter); iFound != NOT_AN_AMINO_ACID)
+		if (AminoAcids_e iFound = TestNumber(flFrontierPeak - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
-			double flPredictedCounterpartPeak = flLastYIon + g_rgAminoAcidsData[iFound].m_ResidueMass;
+			double flPredictedCounterpartPeak = flVarificationPeak + g_rgAminoAcidsData[iFound].m_ResidueMass;
 			bool bPredictedFound = false;
 			if (pfnShouldCheck(flPredictedCounterpartPeak))
 			{
@@ -405,7 +504,7 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 					if ((int)std::round(flPredictedCounterpartPeak - Peak) == 0)
 					{
 						bPredictedFound = true;
-						flPredictedCounterpartPeak = Peak.m_Value;	// Set to observed Y ion.
+						flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
 						break;
 					}
 				}
@@ -450,13 +549,13 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
-	double flLastYIon = ThisWorldline.m_Solution.back().m_yTypeIon;
-	double flLastBIon = ThisWorldline.m_Solution[ThisWorldline.m_Solution.size() - 2U].m_bTypeIon;
+	double flFrontierPeak = ThisWorldline.m_Solution.back().m_yTypeIon;
+	double flVarificationPeak = ThisWorldline.m_Solution[ThisWorldline.m_Solution.size() - 2U].m_bTypeIon;
 	AlternativeReality_t ThisCopy = ThisWorldline;
 
 	for (auto iter = ThisWorldline.m_PendingPeaks.begin(); iter != ThisWorldline.m_PendingPeaks.end(); /* Does nothing. */)
 	{
-		if (*iter >= flLastYIon)
+		if (*iter >= flFrontierPeak)
 			goto LAB_CONTINUE;
 
 		for (const auto& Cell : ThisWorldline.m_Solution)
@@ -468,9 +567,9 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 			}
 		}
 
-		if (AminoAcids_e iFound = TestNumber(flLastYIon - *iter); iFound != NOT_AN_AMINO_ACID)
+		if (AminoAcids_e iFound = TestNumber(flFrontierPeak - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
-			double flPredictedCounterpartPeak = flLastBIon + g_rgAminoAcidsData[iFound].m_ResidueMass;
+			double flPredictedCounterpartPeak = flVarificationPeak + g_rgAminoAcidsData[iFound].m_ResidueMass;
 			bool bPredictedFound = false;
 			if (pfnShouldCheck(flPredictedCounterpartPeak))
 			{
@@ -479,7 +578,7 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 					if ((int)std::round(flPredictedCounterpartPeak - Peak) == 0)
 					{
 						bPredictedFound = true;
-						flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed B ion.
+						flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
 						break;
 					}
 				}
@@ -521,7 +620,7 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 		fnRecursiveY(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
-void PrintWorldline(const AlternativeReality_t& Worldline, const vector<MassPeak_t>& rgflOriginalMassData) noexcept
+template<typename T> void PrintWorldline(const AlternativeReality_t& Worldline, const T& rgflOriginalMassData) noexcept
 {
 	for (const auto& Cell : Worldline.m_Solution)
 	{
@@ -556,14 +655,17 @@ void PrintWorldline(const AlternativeReality_t& Worldline, const vector<MassPeak
 			cout_pink() << Cell.m_yTypeIon << '\t';
 	}
 
-	cout_gray() << "\nLeft peaks: ";
+	cout_gray() << std::format("\nLeft peaks({}/{}): ", Worldline.m_PendingPeaks.size(), rgflOriginalMassData.size());
 	for (const auto& Peak : Worldline.m_PendingPeaks)
 	{
 		cout_gray() << Peak.m_Value << ", ";
 	}
+
+	cout_w() << '\n';
 }
 
-export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexcept
+export [[nodiscard]]
+list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexcept
 {
 	vector<MassPeak_t> rgflMassData2 = rgflMassData;
 	int iMPlusOne = (int)std::round(M_Plus_1);
@@ -613,7 +715,6 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 	//			iter = FirstBWorldline.m_PendingPeaks.erase(iter);
 	//			continue;
 	//		}
-
 	//		++iter;
 	//	}
 	//}
@@ -642,44 +743,49 @@ export void Solve(const vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexc
 		}
 	}
 
-	list<Explanation_t> rgExplanations {};
+	list<AlternativeReality_t> rgExplanations{};
 
 	for (const auto& Worldline : rgYSideGuesses)
 	{
-		auto szSequence = Worldline.Conclude();
+		auto szSequence = Conclude(Worldline.m_Solution);
 		for (const auto& WorldlineCompareWith : rgBSideGuesses)
 		{
-			auto szSeqCompareWith = WorldlineCompareWith.Conclude();
+			auto szSeqCompareWith = Conclude(WorldlineCompareWith.m_Solution);
 			auto pszSeqCompW = szSeqCompareWith.c_str();
 			for (const char* pszSeq = szSequence.c_str(); *pszSeq != '\0'; ++pszSeq)
 			{
 				if (auto iLength = strlen(pszSeq); iLength > 1 && !strncmp(pszSeq, pszSeqCompW, iLength))
-					rgExplanations.emplace_back(szSequence, szSeqCompareWith, iLength);
+				{
+					string s = szSequence;
+					s.erase(s.length() - iLength);
+					s += szSeqCompareWith;
+
+					if (std::round(MolecularWeight(s) + amu::Hydrogen - M_Plus_1))
+						continue;
+
+					auto& MergedWorldline = rgExplanations.emplace_back();
+					auto& Solution = MergedWorldline.m_Solution;
+					Solution.insert(Solution.end(), Worldline.m_Solution.begin(), Worldline.m_Solution.begin() + (szSequence.length() - iLength));
+					Solution.insert(Solution.end(), WorldlineCompareWith.m_Solution.begin() + 1, WorldlineCompareWith.m_Solution.end());
+
+					for (auto& Cell : Solution)
+						Cell.Deduce();
+
+					MergedWorldline.m_PendingPeaks = FilterUnexplainablePeaks(rgflMassData2, Solution);
+				}
 			}
 		}
 	}
 
-	rgExplanations.sort([](const Explanation_t& lhs, const Explanation_t& rhs) -> bool { return lhs.m_Overlapping > rhs.m_Overlapping; });
+	rgExplanations.sort([](const AlternativeReality_t& lhs, const AlternativeReality_t& rhs) -> bool { return lhs.m_PendingPeaks.size() < rhs.m_PendingPeaks.size(); });
 
 	for (const auto& Explanation : rgExplanations)
 	{
-		cout_w() << Explanation.m_First << " - " << Explanation.m_Second << '\n';
+		PrintWorldline(Explanation, rgflMassData2);
+		cout_w() << "\n\n";
 	}
 
-	for (const auto& Worldline : rgYSideGuesses)
-	{
-		PrintWorldline(Worldline, rgflMassData2);
-
-		cout_w() << '\n';
-		cout_w() << '\n';
-	}
-	for (const auto& Worldline : rgBSideGuesses)
-	{
-		PrintWorldline(Worldline, rgflMassData2);
-
-		cout_w() << '\n';
-		cout_w() << '\n';
-	}
+	return rgExplanations;
 }
 
 export template<IonType iType>
