@@ -158,6 +158,13 @@ export struct MassPeak_t
 		m_Identified = true;
 	}
 
+	void Reset(void) noexcept
+	{
+		m_Type = IonType::UNKNOWN_TYPE;
+		m_Count = 0;
+		m_Identified = false;
+	}
+
 	constexpr auto operator<=> (const MassPeak_t& rhs) noexcept { return m_Value <=> rhs.m_Value; }
 	constexpr auto operator<=> (Arithmetic auto rhs) noexcept { return m_Value <=> rhs; }
 	constexpr bool operator== (const MassPeak_t& rhs) noexcept { return gcem::abs(m_Value - rhs.m_Value) <= DBL_EPSILON; }
@@ -172,6 +179,7 @@ struct Cell_t
 	constexpr Cell_t(AminoAcids_e what, double b = 0, double y = 0) noexcept : m_AminoAcid(what), m_bTypeIon(b), m_yTypeIon(y) {}
 
 	double m_aTypeIon = 0;	// Subtract -CO-
+	double m_bNeutralLostIon = 0;
 	double m_bAsteriskIon = 0;	// -Ammonia
 	double m_bCircleIon = 0;	// -Water
 	double m_bTypeIon = 0;	// Including this amino acid Coule be b[n] i.e. [M+1] ion itself.
@@ -179,11 +187,14 @@ struct Cell_t
 	double m_yTypeIon = 0;	// Including this amino acid. Could be y[n] i.e. [M+1] ion itself.
 	double m_yCircleIon = 0;	// -Water
 	double m_yAsteriskIon = 0;	// -Ammonia
+	double m_yNeutralLostIon = 0;
 
 	void Deduce(void) noexcept
 	{
 		if (!m_aTypeIon)
 			m_aTypeIon = m_bTypeIon - amu::Carbon - amu::Oxygen;
+		if (!m_bNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass)
+			m_bNeutralLostIon = m_bTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 		if (!m_bAsteriskIon)
 			m_bAsteriskIon = m_bTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
 		if (!m_bCircleIon)
@@ -193,11 +204,47 @@ struct Cell_t
 			m_yCircleIon = m_yTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
 		if (!m_yAsteriskIon)
 			m_yAsteriskIon = m_yTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
+		if (!m_yNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass)
+			m_yNeutralLostIon = m_yTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
+
+	}
+
+	template<typename T> void Disambiguate(const T& rgflMassPeaks) noexcept
+	{
+		switch (m_AminoAcid)
+		{
+			// Nothing we can do about Leucine and Isoleucine.
+			//case Leucine:
+			//case Isoleucine:
+
+			// Nothing we can do about Glutamine and Lysine.
+			// their neutral losses are both NH3.
+			//case Lysine:
+			//case Glutamine:
+
+		case Phenylalanine:
+		case Methionine_Sulfoxide:
+		{
+			auto const itBegin = rgflMassPeaks.cbegin(), itEnd = rgflMassPeaks.cend();
+			auto const fnY = [this](const MassPeak_t& Peak) { return !(bool)std::round(Peak - m_yTypeIon + g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass); };
+			auto const fnB = [this](const MassPeak_t& Peak) { return !(bool)std::round(Peak - m_bTypeIon + g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass); };
+			auto const itYNeuPeak = std::find_if(itBegin, itEnd, fnY);
+			auto const itBNeuPeak = std::find_if(itBegin, itEnd, fnB);
+			bool const bIsMetSf = (itYNeuPeak != itEnd) && (itBNeuPeak != itEnd);
+
+			m_AminoAcid = bIsMetSf ? Methionine_Sulfoxide : Phenylalanine;
+			m_yNeutralLostIon = bIsMetSf ? itYNeuPeak->m_Value : 0;
+			m_bNeutralLostIon = bIsMetSf ? itBNeuPeak->m_Value : 0;
+			break;
+		}
+		default:
+			break;
+		}
 	}
 
 	constexpr bool Filled(void) const noexcept { return m_AminoAcid != NOT_AN_AMINO_ACID && (m_bTypeIon != 0 || m_yTypeIon != 0); }
 	//constexpr bool Explained(double flPeak) const noexcept { return m_aTypeIon == flPeak || m_bAsteriskIon == flPeak || m_bCircleIon == flPeak || m_bTypeIon == flPeak || m_yTypeIon == flPeak || m_yCircleIon == flPeak || m_yAsteriskIon == flPeak; }
-	constexpr bool Explained(double flPeak) const noexcept { return !(bool)gcem::round(flPeak - m_aTypeIon) || !(bool)gcem::round(flPeak - m_bAsteriskIon) || !(bool)gcem::round(flPeak - m_bCircleIon) || !(bool)gcem::round(flPeak - m_bTypeIon) || !(bool)gcem::round(flPeak - m_yTypeIon) || !(bool)gcem::round(flPeak - m_yCircleIon) || !(bool)gcem::round(flPeak - m_yAsteriskIon); }
+	constexpr bool Explained(double flPeak) const noexcept { return !(bool)gcem::round(flPeak - m_aTypeIon) || !(bool)gcem::round(flPeak - m_bNeutralLostIon) || !(bool)gcem::round(flPeak - m_bAsteriskIon) || !(bool)gcem::round(flPeak - m_bCircleIon) || !(bool)gcem::round(flPeak - m_bTypeIon) || !(bool)gcem::round(flPeak - m_yTypeIon) || !(bool)gcem::round(flPeak - m_yCircleIon) || !(bool)gcem::round(flPeak - m_yAsteriskIon) || !(bool)gcem::round(flPeak - m_yNeutralLostIon); }
 
 	constexpr bool operator==(const Cell_t& rhs) const noexcept { return m_AminoAcid == rhs.m_AminoAcid; }
 };
@@ -316,7 +363,7 @@ export double MolecularWeight(const string& szSeq) noexcept
 }
 
 // Get a polypeptide sequence as string.
-template<typename T> string Conclude(const T& rgCells) noexcept
+export template<typename T> string Conclude(const T& rgCells) noexcept
 {
 	string ret;
 	ret.resize(rgCells.size());
@@ -769,7 +816,10 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 					Solution.insert(Solution.end(), WorldlineCompareWith.m_Solution.begin() + 1, WorldlineCompareWith.m_Solution.end());
 
 					for (auto& Cell : Solution)
+					{
+						Cell.Disambiguate(rgflMassData2);
 						Cell.Deduce();
+					}
 
 					MergedWorldline.m_PendingPeaks = FilterUnexplainablePeaks(rgflMassData2, Solution);
 				}
@@ -786,6 +836,45 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 	}
 
 	return rgExplanations;
+}
+
+export template<typename T>
+void MarkPeaks(const AlternativeReality_t& Worldline, T& rgflMassPeaks)
+{
+	short iCount = 1;
+	for (const auto& Cell : Worldline.m_Solution)
+	{
+		for (auto& Peak : rgflMassPeaks)
+		{
+#define ION_CHECK_B(x)	else if (Cell.x && !gcem::round(Peak - Cell.x))	\
+							Peak.Identify(IonType::b, iCount)
+#define ION_CHECK_Y(x)	else if (Cell.x && !gcem::round(Peak - Cell.x))	\
+							Peak.Identify(IonType::y, Worldline.m_Solution.size() + 1 - iCount)
+
+			if (Cell.m_aTypeIon && !gcem::round(Peak - Cell.m_aTypeIon))
+				Peak.Identify(IonType::a, iCount);
+
+			ION_CHECK_B(m_bNeutralLostIon);
+			ION_CHECK_B(m_bAsteriskIon);
+			ION_CHECK_B(m_bCircleIon);
+			ION_CHECK_B(m_bTypeIon);
+			ION_CHECK_Y(m_yTypeIon);
+			ION_CHECK_Y(m_yCircleIon);
+			ION_CHECK_Y(m_yAsteriskIon);
+			ION_CHECK_Y(m_yNeutralLostIon);
+
+#undef ION_CHECK
+		}
+
+		++iCount;
+	}
+}
+
+export template<typename T>
+void ResetPeaks(T& rgflMassPeaks)
+{
+	for (auto& Peak : rgflMassPeaks)
+		Peak.Reset();
 }
 
 export template<IonType iType>
