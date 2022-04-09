@@ -70,38 +70,38 @@ struct AminoAcid_t
 	Molecule_t m_NeutralLoss{};
 };
 
-constexpr Molecule_t NO_LOSS = {};
+constexpr Molecule_t NOTHINGNESS = {};
 constexpr Molecule_t WATER = { 18, "H2O" };
 constexpr Molecule_t AMMONIA = { 17, "NH3" };
 
 unordered_map<char, AminoAcid_t> g_rgAminoAcidsData =
 {
 	{AminoAcids_e::NOT_AN_AMINO_ACID,		{}},
-	{AminoAcids_e::Glycine,					{57.0215, 30, "Gly", NO_LOSS}},
-	{AminoAcids_e::Alanine,					{71.0371, 44, "Ala", NO_LOSS}},
+	{AminoAcids_e::Glycine,					{57.0215, 30, "Gly", NOTHINGNESS}},
+	{AminoAcids_e::Alanine,					{71.0371, 44, "Ala", NOTHINGNESS}},
 	{AminoAcids_e::Serine,					{87.0320, 60, "Ser", WATER}},
-	{AminoAcids_e::Proline,					{97.0528, 70, "Pro", NO_LOSS}},
-	{AminoAcids_e::Valine,					{99.0684, 72, "Val", NO_LOSS}},
+	{AminoAcids_e::Proline,					{97.0528, 70, "Pro", NOTHINGNESS}},
+	{AminoAcids_e::Valine,					{99.0684, 72, "Val", NOTHINGNESS}},
 	{AminoAcids_e::Threonine,				{101.0477, 74, "Thr", WATER}},
 	{AminoAcids_e::Cysteine,				{103.0092, 76, "Cys", { 34, "SH2" }}},
-	{AminoAcids_e::Isoleucine,				{113.0841, 86, "Ile", NO_LOSS}},
-	{AminoAcids_e::Leucine,					{113.0841, 86, "Leu", NO_LOSS}},
+	{AminoAcids_e::Isoleucine,				{113.0841, 86, "Ile", NOTHINGNESS}},
+	{AminoAcids_e::Leucine,					{113.0841, 86, "Leu", NOTHINGNESS}},
 	{AminoAcids_e::Asparagine,				{114.0429, 87, "Asn", AMMONIA}},
 	{AminoAcids_e::Aspartic_Acid,			{115.0269, 88, "Asp", WATER}},
 	{AminoAcids_e::Lysine,					{128.0950, 101, "Lys", AMMONIA}},
 	{AminoAcids_e::Glutamine,				{128.0586, 101, "Gln", AMMONIA}},
 	{AminoAcids_e::Glutamic_Acid,			{129.0426, 102, "Glu", WATER}},
 	{AminoAcids_e::Methionine,				{131.0405, 104, "Met", { 48, "CH3SH" }}},
-	{AminoAcids_e::Histidine,				{137.0589, 110, "His", NO_LOSS}},
+	{AminoAcids_e::Histidine,				{137.0589, 110, "His", NOTHINGNESS}},
 	{AminoAcids_e::Methionine_Sulfoxide,	{147.0354, 120, "Mox", { 64, "CH3SOH" }}},
-	{AminoAcids_e::Phenylalanine,			{147.0684, 120, "Phe", NO_LOSS}},
+	{AminoAcids_e::Phenylalanine,			{147.0684, 120, "Phe", NOTHINGNESS}},
 	{AminoAcids_e::Arginine,				{156.0684, 129, "Arg", AMMONIA}},
 	{AminoAcids_e::Carboxyethyl_Cysteine,	{161.0147, 134, "Cec", { 92, "HSCH2COOH" }}},
-	{AminoAcids_e::Tyrosine,				{163.0633, 134, "Tyr", NO_LOSS}},
-	{AminoAcids_e::Tryptophan,				{186.0793, 159, "Trp", NO_LOSS}},
+	{AminoAcids_e::Tyrosine,				{163.0633, 134, "Tyr", NOTHINGNESS}},
+	{AminoAcids_e::Tryptophan,				{186.0793, 159, "Trp", NOTHINGNESS}},
 };
 
-export enum IonType : char
+export enum class IonType : char
 {
 	UNKNOWN_TYPE = '\0',
 
@@ -120,62 +120,41 @@ export enum IonType : char
 	z = 'z',
 };
 
+export enum IonTrait : uint16
+{
+	NO_LOSS = 0U,
+	LOSS_H2O,
+	LOSS_NH3,
+	LOSS_SPEC_NEUTRAL,
+};
+
 export struct MassPeak_t
 {
 	constexpr MassPeak_t() noexcept {}
 	constexpr MassPeak_t(Arithmetic auto v) noexcept : m_Value(v) {}
 
 	double m_Value = 0;
-	bool m_Identified = false;
-	IonType m_Type = IonType::UNKNOWN_TYPE;
-	short m_Count = 0;
+	string m_String {};
 
-	string ToString(void) const noexcept
+	void Identify(const string& sz) noexcept
 	{
-		if (!m_Identified)
-			return "Unknown";
+		if (!m_String.empty())
+			cout_r() << std::format("Ion {} was previously identified as {}.\n", sz, m_String);
 
-		switch (m_Type)
-		{
-		case IonType::M_PLUS_2H:
-			return "[M+2H]";
-
-		case IonType::M_PLUS_H:
-			return "[M+H]";
-
-		default:
-			return (m_Count > 0) ? std::format("{}{}", (char)m_Type, m_Count) : std::format("{}[n{}]", (char)m_Type, m_Count);
-		}
+		m_String = sz;
 	}
 
-	void Identify(IonType iType, short iCount = 0) noexcept
-	{
-		if (m_Identified)
-			std::cout << std::format("Ion {} was previously identified as {}.\n", m_Value, ToString());
+	constexpr bool Approx(double v) const noexcept { return !(bool)gcem::round(m_Value - v); }
 
-		m_Type = iType;
-		m_Count = iCount;
-		m_Identified = true;
-	}
-
-	void Reset(void) noexcept
-	{
-		m_Type = IonType::UNKNOWN_TYPE;
-		m_Count = 0;
-		m_Identified = false;
-	}
-
-	constexpr auto operator<=> (const MassPeak_t& rhs) noexcept { return m_Value <=> rhs.m_Value; }
-	constexpr auto operator<=> (Arithmetic auto rhs) noexcept { return m_Value <=> rhs; }
-	constexpr bool operator== (const MassPeak_t& rhs) noexcept { return gcem::abs(m_Value - rhs.m_Value) <= DBL_EPSILON; }
-	constexpr bool operator== (Arithmetic auto rhs) noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
+	constexpr auto operator<=> (Arithmetic auto rhs) const noexcept { return m_Value <=> rhs; }
+	constexpr bool operator== (Arithmetic auto rhs) const noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
 	constexpr operator double& () noexcept { return m_Value; }
 	constexpr operator const double& () const noexcept { return m_Value; }
 };
 
 struct Cell_t
 {
-	constexpr Cell_t() noexcept {}
+	constexpr Cell_t(void) noexcept {}
 	constexpr Cell_t(AminoAcids_e what, double b = 0, double y = 0) noexcept : m_AminoAcid(what), m_bTypeIon(b), m_yTypeIon(y) {}
 
 	double m_aTypeIon = 0;	// Subtract -CO-
@@ -191,9 +170,11 @@ struct Cell_t
 
 	void Deduce(void) noexcept
 	{
+		auto const iNeutralMass = g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
+
 		if (!m_aTypeIon)
 			m_aTypeIon = m_bTypeIon - amu::Carbon - amu::Oxygen;
-		if (!m_bNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass)
+		if (!m_bNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_bNeutralLostIon = m_bTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 		if (!m_bAsteriskIon)
 			m_bAsteriskIon = m_bTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
@@ -204,9 +185,8 @@ struct Cell_t
 			m_yCircleIon = m_yTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
 		if (!m_yAsteriskIon)
 			m_yAsteriskIon = m_yTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
-		if (!m_yNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass)
+		if (!m_yNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_yNeutralLostIon = m_yTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
-
 	}
 
 	template<typename T> void Disambiguate(const T& rgflMassPeaks) noexcept
@@ -226,10 +206,8 @@ struct Cell_t
 		case Methionine_Sulfoxide:
 		{
 			auto const itBegin = rgflMassPeaks.cbegin(), itEnd = rgflMassPeaks.cend();
-			auto const fnY = [this](const MassPeak_t& Peak) { return !(bool)std::round(Peak - m_yTypeIon + g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass); };
-			auto const fnB = [this](const MassPeak_t& Peak) { return !(bool)std::round(Peak - m_bTypeIon + g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass); };
-			auto const itYNeuPeak = std::find_if(itBegin, itEnd, fnY);
-			auto const itBNeuPeak = std::find_if(itBegin, itEnd, fnB);
+			auto const itYNeuPeak = std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, m_yTypeIon - g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass));
+			auto const itBNeuPeak = std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, m_bTypeIon - g_rgAminoAcidsData[Methionine_Sulfoxide].m_NeutralLoss.m_Mass));
 			bool const bIsMetSf = (itYNeuPeak != itEnd) && (itBNeuPeak != itEnd);
 
 			m_AminoAcid = bIsMetSf ? Methionine_Sulfoxide : Phenylalanine;
@@ -243,7 +221,6 @@ struct Cell_t
 	}
 
 	constexpr bool Filled(void) const noexcept { return m_AminoAcid != NOT_AN_AMINO_ACID && (m_bTypeIon != 0 || m_yTypeIon != 0); }
-	//constexpr bool Explained(double flPeak) const noexcept { return m_aTypeIon == flPeak || m_bAsteriskIon == flPeak || m_bCircleIon == flPeak || m_bTypeIon == flPeak || m_yTypeIon == flPeak || m_yCircleIon == flPeak || m_yAsteriskIon == flPeak; }
 	constexpr bool Explained(double flPeak) const noexcept { return !(bool)gcem::round(flPeak - m_aTypeIon) || !(bool)gcem::round(flPeak - m_bNeutralLostIon) || !(bool)gcem::round(flPeak - m_bAsteriskIon) || !(bool)gcem::round(flPeak - m_bCircleIon) || !(bool)gcem::round(flPeak - m_bTypeIon) || !(bool)gcem::round(flPeak - m_yTypeIon) || !(bool)gcem::round(flPeak - m_yCircleIon) || !(bool)gcem::round(flPeak - m_yAsteriskIon) || !(bool)gcem::round(flPeak - m_yNeutralLostIon); }
 
 	constexpr bool operator==(const Cell_t& rhs) const noexcept { return m_AminoAcid == rhs.m_AminoAcid; }
@@ -262,6 +239,20 @@ export struct AlternativeReality_t
 	vector<MassPeak_t> m_PendingPeaks{};
 	vector<Cell_t> m_Solution{};
 };
+
+export template<uint16 iChargeFrom, uint16 iChargeTo>
+constexpr decltype(auto) M2ZConversion(std::floating_point auto flFrom) noexcept
+{
+	using T = decltype(flFrom);
+
+	constexpr int iChargeDiff = iChargeTo - iChargeFrom;
+
+	flFrom *= T(iChargeFrom);
+	flFrom += T(iChargeDiff) * amu::Hydrogen;
+	flFrom /= T(iChargeTo);
+
+	return flFrom;
+}
 
 AminoAcids_e TestNumber(double flPeakDiff) noexcept
 {
@@ -363,7 +354,8 @@ export double MolecularWeight(const string& szSeq) noexcept
 }
 
 // Get a polypeptide sequence as string.
-export template<typename T> string Conclude(const T& rgCells) noexcept
+export template<bool bFirmlySure = false, typename T = vector<Cell_t>>
+string Conclude(const T& rgCells) noexcept
 {
 	string ret;
 	ret.resize(rgCells.size());
@@ -371,29 +363,36 @@ export template<typename T> string Conclude(const T& rgCells) noexcept
 
 	for (const auto& Cell : rgCells)
 	{
-		switch (Cell.m_AminoAcid)
+		if constexpr (!bFirmlySure)
 		{
-		case NOT_AN_AMINO_ACID:
-			continue;
-
-		case Isoleucine:
-		case Leucine:
-			ret.push_back(Isoleucine);
-			break;
-
-		case Lysine:
-		case Glutamine:
-			ret.push_back(Lysine);
-			break;
-
-		case Methionine_Sulfoxide:
-		case Phenylalanine:
-			ret.push_back(Phenylalanine);
-			break;
-
-		default:
+			switch (Cell.m_AminoAcid)
+			{
+			case NOT_AN_AMINO_ACID:
+				continue;
+	
+			case Isoleucine:
+			case Leucine:
+				ret.push_back(Isoleucine);
+				break;
+	
+			case Lysine:
+			case Glutamine:
+				ret.push_back(Glutamine);
+				break;
+	
+			case Methionine_Sulfoxide:
+			case Phenylalanine:
+				ret.push_back(Phenylalanine);
+				break;
+	
+			default:
+				ret.push_back(Cell.m_AminoAcid);
+				break;
+			}
+		}
+		else
+		{
 			ret.push_back(Cell.m_AminoAcid);
-			break;
 		}
 	}
 
@@ -408,12 +407,7 @@ template<typename T, typename U> bool AllPeaksExplained(const T& rgflMassPeaks, 
 
 	for (const auto& Peak : rgflMassPeaks)
 	{
-		const auto fn = [&Peak](const Cell_t& Cell) -> bool
-		{
-			return Cell.Explained(Peak);
-		};
-
-		size_t v = std::find_if(rgCells.cbegin(), rgCells.cend(), fn) != rgCells.cend();
+		size_t v = std::find_if(rgCells.cbegin(), rgCells.cend(), std::bind(&Cell_t::Explained, std::placeholders::_1, Peak)) != rgCells.cend();
 		if (!v)
 			cout_cyan() << std::format("[{}] ", Peak.m_Value);
 		iCount += v;
@@ -426,100 +420,18 @@ template<typename T, typename U> bool AllPeaksExplained(const T& rgflMassPeaks, 
 
 template<typename T, typename U> T FilterUnexplainablePeaks(const T& rgflMassPeaks, const U& rgCells) noexcept
 {
-	T ret = rgflMassPeaks;
+	T ret;
 
-	for (auto iter = ret.begin(); iter != ret.end(); /* Does nothing. */)
+	for (const auto& Peak : rgflMassPeaks)
 	{
-		const auto fn = [&iter](const Cell_t& Cell) -> bool { return Cell.Explained(*iter); };
-
-		if (std::find_if(rgCells.cbegin(), rgCells.cend(), fn) == rgCells.cend())
-			++iter;	// No found == keep it.
-		else
-			iter = ret.erase(iter);
+		if (std::find_if(rgCells.cbegin(), rgCells.cend(), std::bind(&Cell_t::Explained, std::placeholders::_1, Peak)) == rgCells.cend())
+			ret.push_back(Peak);
 	}
 
 	return ret;
 }
 
-export void IdentifyBorderIons(vector<MassPeak_t>& rgflMassData, double M_plus_1) noexcept
-{
-	int iMPlusOne = (int)std::round(M_plus_1);
-	int iMPlusTwo = (int)std::round((M_plus_1 + amu::Hydrogen) / 2.0);
-
-	for (auto& Peak : rgflMassData)
-	{
-		// Test 1: y1 ion?
-		switch ((int)std::round(Peak))
-		{
-		case 147:	// residue mass + H3O[+]
-			std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", Peak.m_Value, g_rgAminoAcidsData[Lysine].m_3Letters);
-			Peak.Identify(IonType::y, 1);
-			continue;
-
-		case 175:
-			std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", Peak.m_Value, g_rgAminoAcidsData[Arginine].m_3Letters);
-			Peak.Identify(IonType::y, 1);
-			continue;
-
-		default:
-			break;
-		}
-
-		for (const auto& [AminoAcid, Data] : g_rgAminoAcidsData)
-		{
-			// Test 2: a1 ion?
-			if ((int)std::round(Peak) == Data.m_ImmoniumIonMass)
-			{
-				std::cout << std::format("Peak {} was identified as a1 ion and the N-terminal amino acid is {}.\n", Peak.m_Value, Data.m_3Letters);
-				Peak.Identify(IonType::a, 1);
-				break;
-			}
-
-			// Test 3: b1 ion?
-			// Note: Chemically speaking, you won't see b1 ion for some reason.
-			else if ((int)std::round(Peak) == Data.m_ImmoniumIonMass + 28)
-			{
-				std::cout << std::format("Peak {} was identified as b1 ion and the N-terminal amino acid is {}.\n", Peak.m_Value, Data.m_3Letters);
-				Peak.Identify(IonType::b, 1);
-				break;
-			}
-		}
-
-		// Test 4: y[n-1] ion?
-		if (auto AminoAcid = TestNumber(M_plus_1 - Peak); AminoAcid != NOT_AN_AMINO_ACID)
-		{
-			std::cout << std::format("Peak {} was identified as y[n-1] ion and the N-terminal amino acid is {}.\n", Peak.m_Value, g_rgAminoAcidsData[AminoAcid].m_3Letters);
-			Peak.Identify(IonType::y, -1);
-			continue;
-		}
-
-		// Test 5: b[n-1] ion?
-		switch ((int)std::round(M_plus_1 - Peak))
-		{
-		case 146:	// residue mass + H2O (Consider as natural loss).
-			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", Peak.m_Value, g_rgAminoAcidsData[Lysine].m_3Letters);
-			Peak.Identify(IonType::b, -1);
-			continue;
-
-		case 174:
-			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", Peak.m_Value, g_rgAminoAcidsData[Arginine].m_3Letters);
-			Peak.Identify(IonType::b, -1);
-			continue;
-
-		default:
-			break;
-		}
-
-		// Test 6: [M+H] or [M+2H]?
-		if (int iPeakMass = (int)std::round(Peak); iPeakMass == iMPlusOne || iPeakMass == iMPlusTwo)
-		{
-			Peak.Identify(iPeakMass == iMPlusOne ? IonType::M_PLUS_H : IonType::M_PLUS_2H);
-			continue;
-		}
-	}
-}
-
-void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+void fnRecursiveB_Backward(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
 	double flFrontierPeak = ThisWorldline.m_Solution.front().m_bTypeIon;
@@ -548,7 +460,7 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 			{
 				for (const auto& Peak : ThisWorldline.m_PendingPeaks)
 				{
-					if ((int)std::round(flPredictedCounterpartPeak - Peak) == 0)
+					if (Peak.Approx(flPredictedCounterpartPeak))
 					{
 						bPredictedFound = true;
 						flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
@@ -580,7 +492,7 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 				OtherWorld.m_Solution.emplace(OtherWorld.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
-				fnRecursiveB(rgWorldlines, OtherWorld, pfnShouldCheck);
+				fnRecursiveB_Backward(rgWorldlines, OtherWorld, pfnShouldCheck);
 			}
 		}
 
@@ -590,10 +502,10 @@ void fnRecursiveB(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 	}
 
 	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
-		fnRecursiveB(rgWorldlines, ThisWorldline, pfnShouldCheck);
+		fnRecursiveB_Backward(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
-void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+void fnRecursiveY_Backward(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
 	double flFrontierPeak = ThisWorldline.m_Solution.back().m_yTypeIon;
@@ -622,7 +534,7 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 			{
 				for (const auto& Peak : ThisWorldline.m_PendingPeaks)
 				{
-					if ((int)std::round(flPredictedCounterpartPeak - Peak) == 0)
+					if (Peak.Approx(flPredictedCounterpartPeak))
 					{
 						bPredictedFound = true;
 						flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
@@ -654,7 +566,7 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 				OtherWorld.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
-				fnRecursiveY(rgWorldlines, OtherWorld, pfnShouldCheck);
+				fnRecursiveY_Backward(rgWorldlines, OtherWorld, pfnShouldCheck);
 			}
 		}
 
@@ -664,14 +576,16 @@ void fnRecursiveY(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t
 	}
 
 	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
-		fnRecursiveY(rgWorldlines, ThisWorldline, pfnShouldCheck);
+		fnRecursiveY_Backward(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
 template<typename T> void PrintWorldline(const AlternativeReality_t& Worldline, const T& rgflOriginalMassData) noexcept
 {
+	auto const itBegin = rgflOriginalMassData.cbegin(), itEnd = rgflOriginalMassData.cend();
+
 	for (const auto& Cell : Worldline.m_Solution)
 	{
-		if (std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_bTypeIon) != rgflOriginalMassData.cend())
+		if (std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_bTypeIon)) != itEnd)	// #CPP23_UPGRADE
 			cout_w() << Cell.m_bTypeIon << '\t';
 		else
 			cout_pink() << Cell.m_bTypeIon << '\t';
@@ -681,8 +595,8 @@ template<typename T> void PrintWorldline(const AlternativeReality_t& Worldline, 
 
 	for (const auto& Cell : Worldline.m_Solution)
 	{
-		bool bbFound = std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_bTypeIon) != rgflOriginalMassData.cend();
-		bool byFound = std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_yTypeIon) != rgflOriginalMassData.cend();
+		bool bbFound = std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_bTypeIon)) != itEnd;
+		bool byFound = std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_yTypeIon)) != itEnd;
 
 		if (bbFound && byFound)
 			cout_g() << Cell.m_AminoAcid << '\t';
@@ -696,7 +610,7 @@ template<typename T> void PrintWorldline(const AlternativeReality_t& Worldline, 
 
 	for (const auto& Cell : Worldline.m_Solution)
 	{
-		if (std::find(rgflOriginalMassData.cbegin(), rgflOriginalMassData.cend(), Cell.m_yTypeIon) != rgflOriginalMassData.cend())
+		if (std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_yTypeIon)) != itEnd)
 			cout_w() << Cell.m_yTypeIon << '\t';
 		else
 			cout_pink() << Cell.m_yTypeIon << '\t';
@@ -716,7 +630,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 {
 	vector<MassPeak_t> rgflMassData2 = rgflMassData;
 	int iMPlusOne = (int)std::round(M_Plus_1);
-	int iMPlusTwo = (int)std::round((M_Plus_1 + amu::Hydrogen) / 2.0);
+	int iMPlusTwo = (int)std::round(M2ZConversion<1, 2>(M_Plus_1));
 
 	// Handling full ion peak.
 	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); /* Does nothing. */)
@@ -766,9 +680,10 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 	//	}
 	//}
 
-	assert(/*FirstBWorldline.m_Solution.size() == 1 || */FirstBWorldline.m_Solution.size() == 2);
+	//assert(/*FirstBWorldline.m_Solution.size() == 1 || */FirstBWorldline.m_Solution.size() == 2);
 
-	fnRecursiveB(rgBSideGuesses, FirstBWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
+	if (FirstBWorldline.m_Solution.size() == 2)
+		fnRecursiveB_Backward(rgBSideGuesses, FirstBWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
 
 	list<AlternativeReality_t> rgYSideGuesses {};
 	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); ++iter)
@@ -786,7 +701,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 			AnotherYWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value /* y[n-1] */);
 			AnotherYWorldline.m_PendingPeaks.erase(std::find(AnotherYWorldline.m_PendingPeaks.begin(), AnotherYWorldline.m_PendingPeaks.end(), *iter));
 
-			fnRecursiveY(rgYSideGuesses, AnotherYWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
+			fnRecursiveY_Backward(rgYSideGuesses, AnotherYWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
 		}
 	}
 
@@ -811,6 +726,8 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 						continue;
 
 					auto& MergedWorldline = rgExplanations.emplace_back();
+					MergedWorldline.m_MPlusOne = M_Plus_1;
+
 					auto& Solution = MergedWorldline.m_Solution;
 					Solution.insert(Solution.end(), Worldline.m_Solution.begin(), Worldline.m_Solution.begin() + (szSequence.length() - iLength));
 					Solution.insert(Solution.end(), WorldlineCompareWith.m_Solution.begin() + 1, WorldlineCompareWith.m_Solution.end());
@@ -842,31 +759,52 @@ export template<typename T>
 void MarkPeaks(const AlternativeReality_t& Worldline, T& rgflMassPeaks)
 {
 	short iCount = 1;
+	short const iTotalCount = (short)Worldline.m_Solution.size() + 1;
 	for (const auto& Cell : Worldline.m_Solution)
 	{
 		for (auto& Peak : rgflMassPeaks)
 		{
-#define ION_CHECK_B(x)	else if (Cell.x && !gcem::round(Peak - Cell.x))	\
-							Peak.Identify(IonType::b, iCount)
-#define ION_CHECK_Y(x)	else if (Cell.x && !gcem::round(Peak - Cell.x))	\
-							Peak.Identify(IonType::y, Worldline.m_Solution.size() + 1 - iCount)
-
+			// a
 			if (Cell.m_aTypeIon && !gcem::round(Peak - Cell.m_aTypeIon))
-				Peak.Identify(IonType::a, iCount);
+				Peak.Identify(std::format("{}{}", (char)IonType::a, iCount));
 
-			ION_CHECK_B(m_bNeutralLostIon);
-			ION_CHECK_B(m_bAsteriskIon);
-			ION_CHECK_B(m_bCircleIon);
-			ION_CHECK_B(m_bTypeIon);
-			ION_CHECK_Y(m_yTypeIon);
-			ION_CHECK_Y(m_yCircleIon);
-			ION_CHECK_Y(m_yAsteriskIon);
-			ION_CHECK_Y(m_yNeutralLostIon);
+			// b
+			else if (Cell.m_bNeutralLostIon && !gcem::round(Peak - Cell.m_bNeutralLostIon))
+				Peak.Identify(std::format("{}{}\'", (char)IonType::b, iCount));
+			else if (Cell.m_bAsteriskIon && !gcem::round(Peak - Cell.m_bAsteriskIon))
+				Peak.Identify(std::format("{}{}*", (char)IonType::b, iCount));
+			else if (Cell.m_bCircleIon && !gcem::round(Peak - Cell.m_bCircleIon))
+				Peak.Identify(std::vformat((const char*)u8"{}{}°", std::make_format_args((char)IonType::b, iCount)));	// Fuck C++20
+			else if (Cell.m_bTypeIon && !gcem::round(Peak - Cell.m_bTypeIon))
+				Peak.Identify(std::format("{}{}", (char)IonType::b, iCount));
 
-#undef ION_CHECK
+			// y
+			else if (Cell.m_yNeutralLostIon && !gcem::round(Peak - Cell.m_yNeutralLostIon))
+				Peak.Identify(std::format("{}{}\'", (char)IonType::y, iTotalCount - iCount));
+			else if (Cell.m_yAsteriskIon && !gcem::round(Peak - Cell.m_yAsteriskIon))
+				Peak.Identify(std::format("{}{}*", (char)IonType::y, iTotalCount - iCount));
+			else if (Cell.m_yCircleIon && !gcem::round(Peak - Cell.m_yCircleIon))
+				Peak.Identify(std::vformat((const char*)u8"{}{}°", std::make_format_args((char)IonType::y, iTotalCount - iCount)));
+			else if (Cell.m_yTypeIon && !gcem::round(Peak - Cell.m_yTypeIon))
+				Peak.Identify(std::format("{}{}", (char)IonType::y, iTotalCount - iCount));
 		}
 
 		++iCount;
+	}
+
+	double const MPlusTwo = M2ZConversion<1, 2>(Worldline.m_MPlusOne);
+	double const MPlusThree = M2ZConversion<1, 3>(Worldline.m_MPlusOne);
+	for (auto& Peak : rgflMassPeaks)
+	{
+		if (Peak.m_String.empty())
+		{
+			if (!gcem::round(Peak - Worldline.m_MPlusOne))
+				Peak.Identify("[M+H]");
+			else if (!gcem::round(Peak - MPlusTwo))
+				Peak.Identify("[M+2H]");
+			else if (!gcem::round(Peak - MPlusThree))	[[unlikely]]
+				Peak.Identify("[M+3H]");
+		}
 	}
 }
 
@@ -874,35 +812,5 @@ export template<typename T>
 void ResetPeaks(T& rgflMassPeaks)
 {
 	for (auto& Peak : rgflMassPeaks)
-		Peak.Reset();
-}
-
-export template<IonType iType>
-void ParseSpectrum(vector<MassPeak_t>& rgflMassData, double M_Plus_1) noexcept
-{
-	list<AminoAcids_e> rg;
-	double flLast = M_Plus_1;
-
-	for (auto iter = rgflMassData.crbegin(); iter != rgflMassData.crend(); ++iter)
-	{
-		if (!iter->m_Identified)
-			continue;
-
-		if (iter->m_Type != iType)
-			continue;
-
-		if constexpr (iType == IonType::x || iType == IonType::y || iType == IonType::z)
-			rg.push_back(TestNumber(std::abs(flLast - *iter)));
-		else if constexpr (iType == IonType::a || iType == IonType::b || iType == IonType::c)
-			rg.push_front(TestNumber(std::abs(flLast - *iter)));
-
-		flLast = *iter;
-	}
-
-	for (const auto& AminoAcid : rg)
-	{
-		std::cout << AminoAcid;
-	}
-
-	std::cout << '\n';
+		Peak.m_String.clear();
 }

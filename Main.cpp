@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <format>
 #include <iostream>
-#include <vector>
 #include <list>
+#include <vector>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -17,9 +17,9 @@ import PeriodicTable;
 
 import UtlWinConsole;
 
-using std::vector;
-using std::string;
 using std::list;
+using std::string;
+using std::vector;
 
 // Example 1 SAMPLER
 //vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
@@ -27,9 +27,9 @@ using std::list;
 //string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304\n387\n402\n417\n500\n514\n611\n597\n629\n645\n716";
 
 // Example 2 CHEMISTK
-//vector<MassPeak_t> g_rgflMassData = { 86, 110, 147, 207, 230, 248, 270, 298, 317, 335, 409, 399, 427, 448, 503, 510, 558, 579, 671, 708, 845 };
-//double g_flMPlusOne = 503 * 2 - 1;
-//string g_szInputMassData = "86\n110\n147\n207\n230\n248\n270\n298\n317\n335\n409\n399\n427\n448\n503\n510\n558\n579\n671\n708\n845";
+vector<MassPeak_t> g_rgflMassData = { 86, 110, 147, 207, 230, 248, 270, 298, 317, 335, 409, 399, 427, 448, 503, 510, 558, 579, 671, 708, 845 };
+double g_flMPlusOne = 503 * 2 - 1;
+string g_szInputMassData = "86\n110\n147\n207\n230\n248\n270\n298\n317\n335\n409\n399\n427\n448\n503\n510\n558\n579\n671\n708\n845";
 
 // Example 3 DIERNIVAGK
 //vector<MassPeak_t> g_rgflMassData = { 86.0, 129.0, 147.1, 201.1, 204.1, 229.1, 275.1, 358.1, 347.2, 379.2, 443.7, 484.5, 487.3, 500.3, 514.2, 557.5, 497.2, 601.3668, 628.3, 741.4, 757.4, 840.4, 886.5, 911.5, 999.6 };
@@ -47,14 +47,17 @@ using std::list;
 //string g_szInputMassData = "308.2\n310.2\n424.2\n459.2\n494.3\n608.3\n610.3\n723.4\n771.4\n780.4";
 
 // Example 6 NTDGTQIIGYmTVNSR
-vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 730.4, 843.5, 886.3, 893.4, 900.5, 943.3, 1056.4, 1063.6, 1146.6, 1192.6, 1210.6, 1169.5, 1297.6, 1311.7, 1380.7, 1398.7, 1410.7, 1455.7, 1524.7, 1552.7, 1570.8, 1611.7, 1671.8 };
-double g_flMPlusOne = 1785.8436;
-string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
+//vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 730.4, 843.5, 886.3, 893.4, 900.5, 943.3, 1056.4, 1063.6, 1146.6, 1192.6, 1210.6, 1169.5, 1297.6, 1311.7, 1380.7, 1398.7, 1410.7, 1455.7, 1524.7, 1552.7, 1570.8, 1611.7, 1671.8 };
+//double g_flMPlusOne = 1785.8436;
+//string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
 
-double g_flMPlusTwo = (g_flMPlusOne + amu::Hydrogen) / 2.0;
+double g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne), g_flMPlusThree = M2ZConversion<1, 3>(g_flMPlusOne);
 
+int g_iPrecision = 4;
 list<AlternativeReality_t> g_rgExplanations;
 string g_szSelectedWorldline;
+MassPeak_t g_SelectedPeak;
+
 
 void DrawInputWindow(void) noexcept
 {
@@ -62,16 +65,27 @@ void DrawInputWindow(void) noexcept
 
 	ImGui::Begin("Input");
 
+	ImGui::SliderInt("Precision", &g_iPrecision, 0, 4);
+
 	if (ImGui::InputDouble("[M+1] ion mass", &g_flMPlusOne))
 	{
 		bChanged = true;
-		g_flMPlusTwo = (g_flMPlusOne + amu::Hydrogen) / 2.0;
+		g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne);
+		g_flMPlusThree = M2ZConversion<1, 3>(g_flMPlusOne);
 	}
 
 	if (ImGui::InputDouble("[M+2] ion mass", &g_flMPlusTwo))
 	{
 		bChanged = true;
-		g_flMPlusOne = g_flMPlusTwo * 2 - amu::Hydrogen;
+		g_flMPlusOne = M2ZConversion<2, 1>(g_flMPlusTwo);
+		g_flMPlusThree = M2ZConversion<2, 3>(g_flMPlusTwo);
+	}
+	
+	if (ImGui::InputDouble("[M+3] ion mass", &g_flMPlusThree))
+	{
+		bChanged = true;
+		g_flMPlusOne = M2ZConversion<3, 1>(g_flMPlusThree);
+		g_flMPlusTwo = M2ZConversion<3, 2>(g_flMPlusThree);
 	}
 
 	if (ImGui::InputTextMultiline("Peaks", &g_szInputMassData))
@@ -92,61 +106,68 @@ void DrawInputWindow(void) noexcept
 		std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
 	}
 
-	if (ImGui::Button("Deduce") && g_flMPlusOne > 0)
+	if (bChanged)
 	{
-		//std::cout << "\n\nNew analysis begin:\n";
-		//IdentifyBorderIons(g_rgflMassData, M_plus_1);
-		//RecursiveIdentify(g_rgflMassData, IonType::b, -2);
-		//RecursiveIdentify(g_rgflMassData, IonType::y, -2);
-		//ParseSpectrum<IonType::y>(g_rgflMassData, M_plus_1);
-		//ParseSpectrum<IonType::b>(g_rgflMassData, M_plus_1);
-
 		clear_console();
-		g_rgExplanations = Solve(g_rgflMassData, g_flMPlusOne);
+		g_rgExplanations.clear();
+		g_szSelectedWorldline.clear();
+		g_SelectedPeak = 0;
 	}
 
 	ImGui::NewLine();
-	ImGui::NewLine();
 
-	static MassPeak_t SelectedPeak{};
-
-	if (ImGui::BeginTable("Result", 4, ImGuiTableFlags_Resizable))
+	if (ImGui::BeginTable("Result", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable))
 	{
+		ImGui::TableSetupColumn("Peak", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Identity", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Delta", ImGuiTableColumnFlags_WidthFixed);
+		ImGui::TableSetupColumn("Explanation of difference", ImGuiTableColumnFlags_WidthStretch);
+		ImGui::TableHeadersRow();
+
 		// Showing the '0' option.
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
-		if (ImGui::RadioButton("Naught", SelectedPeak == 0.0))
-			SelectedPeak = MassPeak_t{};
-		ImGui::TableSetColumnIndex(1);
-		ImGui::TextUnformatted(std::to_string(-SelectedPeak.m_Value).c_str());
+		if (ImGui::RadioButton("Naught", g_SelectedPeak == 0))
+			g_SelectedPeak = MassPeak_t{};
+		ImGui::TableSetColumnIndex(2);
+		ImGui::TextUnformatted(std::format("{:.{}f}", -g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(TestNumber3(SelectedPeak.m_Value).c_str());
+		ImGui::TextUnformatted(TestNumber3(g_SelectedPeak.m_Value).c_str());
 
-		// Showing actually peak.
-		for (const auto& Peak : g_rgflMassData)
+		// Showing actual peak.
+		for (auto& Peak : g_rgflMassData)
 		{
 			ImGui::TableNextRow();
 
 			ImGui::TableSetColumnIndex(0);
-			if (ImGui::RadioButton(std::to_string(Peak.m_Value).c_str(), SelectedPeak == Peak))
-				SelectedPeak = Peak;
+			if (ImGui::RadioButton(std::format("{:.{}f}", Peak.m_Value, g_iPrecision).c_str(), g_SelectedPeak == Peak))
+				g_SelectedPeak = Peak;
+
 			ImGui::TableSetColumnIndex(1);
-			ImGui::TextUnformatted(std::to_string(Peak - SelectedPeak).c_str());
+			//ImGui::TextUnformatted(Peak.m_String.c_str());
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::PushID(&Peak);
+			ImGui::InputText("##peak", &Peak.m_String);
+			ImGui::PopID();
+
 			ImGui::TableSetColumnIndex(2);
-			ImGui::TextUnformatted(Peak.ToString().c_str());
+			ImGui::TextUnformatted(std::format("{:.{}f}", Peak - g_SelectedPeak, g_iPrecision).c_str());
+
 			ImGui::TableSetColumnIndex(3);
-			ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - Peak)).c_str());
+			ImGui::TextUnformatted(TestNumber3(std::abs(g_SelectedPeak - Peak)).c_str());
 		}
 
 		// Showing the [M+1] option.
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
-		if (ImGui::RadioButton("[M+1]", SelectedPeak == g_flMPlusOne))
-			SelectedPeak = g_flMPlusOne;
+		if (ImGui::RadioButton(std::format("{:.{}f}", g_flMPlusOne, g_iPrecision).c_str(), g_SelectedPeak == g_flMPlusOne))
+			g_SelectedPeak = g_flMPlusOne;
 		ImGui::TableSetColumnIndex(1);
-		ImGui::TextUnformatted(std::to_string(g_flMPlusOne - SelectedPeak).c_str());
+		ImGui::TextUnformatted("[M+H]");
+		ImGui::TableSetColumnIndex(2);
+		ImGui::TextUnformatted(std::format("{:.{}f}", g_flMPlusOne - g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(TestNumber3(std::abs(SelectedPeak - g_flMPlusOne)).c_str());
+		ImGui::TextUnformatted(TestNumber3(std::abs(g_SelectedPeak - g_flMPlusOne)).c_str());
 
 		ImGui::EndTable();
 	}
@@ -158,13 +179,23 @@ void DrawAnalyzeWindow(void) noexcept
 {
 	ImGui::Begin("Analyze");
 
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H]: {}", g_flMPlusOne).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {}", g_flMPlusOne - amu::Hydrogen * 2 - amu::Oxygen).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {}", g_flMPlusOne - amu::Hydrogen * 3 - amu::Nitrogen).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H]: {:.{}f}", g_flMPlusOne, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {:.{}f}", g_flMPlusOne - amu::Hydrogen * 2 - amu::Oxygen, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {:.{}f}", g_flMPlusOne - amu::Hydrogen * 3 - amu::Nitrogen, g_iPrecision).c_str());
+
+	ImGui::NewLine();
+
+	if (ImGui::Button("Deduce") && g_flMPlusOne > 0)
+	{
+		clear_console();
+		g_rgExplanations = Solve(g_rgflMassData, g_flMPlusOne);
+	}
+
+	ImGui::NewLine();
 
 	for (const auto& Worldline : g_rgExplanations)
 	{
-		auto szSeq = Conclude(Worldline.m_Solution);
+		auto szSeq = Conclude<true>(Worldline.m_Solution);
 		if (ImGui::RadioButton(szSeq.c_str(), g_szSelectedWorldline == szSeq))
 		{
 			g_szSelectedWorldline = szSeq;
@@ -199,6 +230,7 @@ int main(int, char**) noexcept
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\CascadiaMono.ttf", 14);
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsClassic();
@@ -222,7 +254,7 @@ int main(int, char**) noexcept
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 
 		// Input window.
 		DrawInputWindow();
@@ -256,5 +288,6 @@ int main(int, char**) noexcept
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
+	cout_w();
 	return EXIT_SUCCESS;
 }
