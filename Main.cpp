@@ -22,14 +22,14 @@ using std::string;
 using std::vector;
 
 // Example 1 SAMPLER
-//vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
-//double g_flMPlusOne = 402 * 2 - 1;
-//string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304\n387\n402\n417\n500\n514\n611\n597\n629\n645\n716";
+vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
+double g_flMPlusOne = 402 * 2 - 1;
+string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304\n387\n402\n417\n500\n514\n611\n597\n629\n645\n716";
 
 // Example 2 CHEMISTK
-vector<MassPeak_t> g_rgflMassData = { 86, 110, 147, 207, 230, 248, 270, 298, 317, 335, 409, 399, 427, 448, 503, 510, 558, 579, 671, 708, 845 };
-double g_flMPlusOne = 503 * 2 - 1;
-string g_szInputMassData = "86\n110\n147\n207\n230\n248\n270\n298\n317\n335\n409\n399\n427\n448\n503\n510\n558\n579\n671\n708\n845";
+//vector<MassPeak_t> g_rgflMassData = { 86, 110, 147, 207, 230, 248, 270, 298, 317, 335, 409, 399, 427, 448, 503, 510, 558, 579, 671, 708, 845 };
+//double g_flMPlusOne = 503 * 2 - 1;
+//string g_szInputMassData = "86\n110\n147\n207\n230\n248\n270\n298\n317\n335\n409\n399\n427\n448\n503\n510\n558\n579\n671\n708\n845";
 
 // Example 3 DIERNIVAGK
 //vector<MassPeak_t> g_rgflMassData = { 86.0, 129.0, 147.1, 201.1, 204.1, 229.1, 275.1, 358.1, 374.2, 379.2, 443.7, 484.5, 487.3, 500.3, 514.2, 557.5, 497.2, 601.3668, 628.3, 741.4, 757.4, 840.4, 886.5, 911.5, 999.6 };
@@ -99,8 +99,8 @@ void DrawInputWindow(void) noexcept
 		while (string::npos != pos || string::npos != lastPos)
 		{
 			g_rgflMassData.emplace_back(std::stod(g_szInputMassData.substr(lastPos, pos - lastPos)));
-			lastPos = g_szInputMassData.find_first_not_of("\n \t", pos);
-			pos = g_szInputMassData.find_first_of("\n \t", lastPos);
+			lastPos = g_szInputMassData.find_first_not_of(",\n \t", pos);
+			pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
 		}
 
 		std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());

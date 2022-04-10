@@ -120,7 +120,7 @@ export enum class IonType : char
 	z = 'z',
 };
 
-export enum IonTrait : unsigned short
+export enum IonTrait : uint16
 {
 	NO_LOSS = 0U,
 	LOSS_H2O,
@@ -240,7 +240,7 @@ export struct AlternativeReality_t
 	vector<Cell_t> m_Solution{};
 };
 
-export template<unsigned short iChargeFrom, unsigned short iChargeTo>
+export template<uint16 iChargeFrom, uint16 iChargeTo>
 constexpr decltype(auto) M2ZConversion(std::floating_point auto flFrom) noexcept
 {
 	using T = decltype(flFrom);
