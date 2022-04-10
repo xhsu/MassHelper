@@ -103,8 +103,13 @@ unordered_map<char, AminoAcid_t> g_rgAminoAcidsData =
 
 export struct MassPeak_t
 {
-	constexpr MassPeak_t() noexcept {}
+	constexpr MassPeak_t(void) noexcept {}
 	constexpr MassPeak_t(Arithmetic auto v) noexcept : m_Value(v) {}
+	MassPeak_t& operator=(const MassPeak_t& rhs) noexcept { m_Value = rhs.m_Value; m_String = rhs.m_String; return *this; }
+	MassPeak_t& operator=(MassPeak_t&& rhs) noexcept { m_Value = rhs.m_Value; std::swap(m_String, rhs.m_String); return *this; }
+	MassPeak_t(const MassPeak_t& rhs) noexcept : m_Value(rhs.m_Value), m_String(rhs.m_String) {}
+	MassPeak_t(MassPeak_t&& rhs) noexcept : m_Value(rhs.m_Value), m_String(std::move(rhs.m_String)) {}
+	~MassPeak_t(void) noexcept {}
 
 	double m_Value = 0;
 	string m_String {};

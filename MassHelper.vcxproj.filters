@@ -59,6 +59,9 @@
     <ClCompile Include="..\Hydrogenium\UtlString.ixx">
       <Filter>Hydeogenium</Filter>
     </ClCompile>
+    <ClCompile Include="..\imgui\misc\freetype\imgui_freetype.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">
@@ -77,6 +80,9 @@
       <Filter>ImGui</Filter>
     </ClInclude>
     <ClInclude Include="..\imgui\backends\imgui_impl_glfw.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\imgui\misc\freetype\imgui_freetype.h">
       <Filter>ImGui</Filter>
     </ClInclude>
   </ItemGroup>
