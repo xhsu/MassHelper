@@ -120,7 +120,7 @@ export enum class IonType : char
 	z = 'z',
 };
 
-export enum IonTrait : uint16
+export enum IonTrait : unsigned short
 {
 	NO_LOSS = 0U,
 	LOSS_H2O,
@@ -240,7 +240,7 @@ export struct AlternativeReality_t
 	vector<Cell_t> m_Solution{};
 };
 
-export template<uint16 iChargeFrom, uint16 iChargeTo>
+export template<unsigned short iChargeFrom, unsigned short iChargeTo>
 constexpr decltype(auto) M2ZConversion(std::floating_point auto flFrom) noexcept
 {
 	using T = decltype(flFrom);
@@ -431,7 +431,76 @@ template<typename T, typename U> T FilterUnexplainablePeaks(const T& rgflMassPea
 	return ret;
 }
 
-void fnRecursiveB_Backward(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+void fnRecursiveFromB1(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+{
+	// The counterpart ion here is actually reaflecting the previous cell.
+	bool bPredictedFound = false;
+	double flPredictedCounterpartPeak = ThisWorldline.m_Solution.back().m_yTypeIon - g_rgAminoAcidsData[ThisWorldline.m_Solution.back().m_AminoAcid].m_ResidueMass;
+
+	if (pfnShouldCheck(flPredictedCounterpartPeak))
+	{
+		for (const auto& Peak : ThisWorldline.m_PendingPeaks)
+		{
+			if (Peak.Approx(flPredictedCounterpartPeak))
+			{
+				bPredictedFound = true;
+				flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
+				break;
+			}
+		}
+		// We are not going to have the current worldline collapsed on failure check.
+	}
+
+	bool bAlreadyFoundOne = false;
+	double flFrontierPeak = ThisWorldline.m_Solution.back().m_bTypeIon;
+	AlternativeReality_t ThisCopy = ThisWorldline;
+
+	for (auto iter = ThisWorldline.m_PendingPeaks.rbegin(); iter != ThisWorldline.m_PendingPeaks.rend(); /* Does nothing. */)
+	{
+		if (*iter <= flFrontierPeak)
+			goto LAB_CONTINUE;
+
+		for (const auto& Cell : ThisWorldline.m_Solution)
+		{
+			if (Cell.Explained(*iter))
+			{
+				iter = decltype(iter)(ThisWorldline.m_PendingPeaks.erase(std::next(iter).base()));
+				goto LAB_NEXT_CYCLE;
+			}
+		}
+
+		if (AminoAcids_e iFound = TestNumber(*iter - flFrontierPeak); iFound != NOT_AN_AMINO_ACID)
+		{
+			if (!bAlreadyFoundOne)
+			{
+				bAlreadyFoundOne = true;
+				ThisWorldline.m_Solution.emplace_back(iFound, iter->m_Value, flPredictedCounterpartPeak);
+
+				iter = decltype(iter)(ThisWorldline.m_PendingPeaks.erase(std::next(iter).base()));
+				continue;
+			}
+			else
+			{
+				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
+				OtherWorld.m_Solution.emplace_back(iFound, iter->m_Value, flPredictedCounterpartPeak);
+				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
+
+				fnRecursiveFromB1(rgWorldlines, OtherWorld, pfnShouldCheck);
+			}
+		}
+
+	LAB_CONTINUE:;
+		++iter;
+	LAB_NEXT_CYCLE:;
+	}
+
+	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
+		fnRecursiveFromB1(rgWorldlines, ThisWorldline, pfnShouldCheck);
+	else
+		ThisWorldline.m_Solution.emplace_back();	// Place a sealer dummy.
+}
+
+void fnRecursiveFromBn(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
 	double flFrontierPeak = ThisWorldline.m_Solution.front().m_bTypeIon;
@@ -484,15 +553,13 @@ void fnRecursiveB_Backward(list<AlternativeReality_t>& rgWorldlines, Alternative
 			}
 			else
 			{
-				rgWorldlines.emplace_back(ThisCopy);
-
-				AlternativeReality_t& OtherWorld = rgWorldlines.back();
+				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
 				OtherWorld.m_Solution.front().m_AminoAcid = iFound;
 				OtherWorld.m_Solution.front().m_yTypeIon = flPredictedCounterpartPeak;
 				OtherWorld.m_Solution.emplace(OtherWorld.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
-				fnRecursiveB_Backward(rgWorldlines, OtherWorld, pfnShouldCheck);
+				fnRecursiveFromBn(rgWorldlines, OtherWorld, pfnShouldCheck);
 			}
 		}
 
@@ -502,10 +569,79 @@ void fnRecursiveB_Backward(list<AlternativeReality_t>& rgWorldlines, Alternative
 	}
 
 	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
-		fnRecursiveB_Backward(rgWorldlines, ThisWorldline, pfnShouldCheck);
+		fnRecursiveFromBn(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
-void fnRecursiveY_Backward(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+void fnRecursiveFromY1(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
+{
+	// The counterpart ion here is actually reaflecting the previous cell.
+	bool bPredictedFound = false;
+	double flPredictedCounterpartPeak = ThisWorldline.m_Solution[0].m_bTypeIon - g_rgAminoAcidsData[ThisWorldline.m_Solution[0].m_AminoAcid].m_ResidueMass;
+	
+	if (pfnShouldCheck(flPredictedCounterpartPeak))
+	{
+		for (const auto& Peak : ThisWorldline.m_PendingPeaks)
+		{
+			if (Peak.Approx(flPredictedCounterpartPeak))
+			{
+				bPredictedFound = true;
+				flPredictedCounterpartPeak = Peak.m_Value;	// Set to the observed counterpart ion.
+				break;
+			}
+		}
+		// We are not going to have the current worldline collapsed on failure check.
+	}
+
+	bool bAlreadyFoundOne = false;
+	double flFrontierPeak = ThisWorldline.m_Solution[0].m_yTypeIon;
+	AlternativeReality_t ThisCopy = ThisWorldline;
+
+	for (auto iter = ThisWorldline.m_PendingPeaks.rbegin(); iter != ThisWorldline.m_PendingPeaks.rend(); /* Does nothing. */)
+	{
+		if (*iter <= flFrontierPeak)
+			goto LAB_CONTINUE;
+
+		for (const auto& Cell : ThisWorldline.m_Solution)
+		{
+			if (Cell.Explained(*iter))
+			{
+				iter = decltype(iter)(ThisWorldline.m_PendingPeaks.erase(std::next(iter).base()));
+				goto LAB_NEXT_CYCLE;
+			}
+		}
+
+		if (AminoAcids_e iFound = TestNumber(*iter - flFrontierPeak); iFound != NOT_AN_AMINO_ACID)
+		{
+			if (!bAlreadyFoundOne)
+			{
+				bAlreadyFoundOne = true;
+				ThisWorldline.m_Solution.emplace(ThisWorldline.m_Solution.begin(), iFound, flPredictedCounterpartPeak, iter->m_Value);
+
+				iter = decltype(iter)(ThisWorldline.m_PendingPeaks.erase(std::next(iter).base()));
+				continue;
+			}
+			else
+			{
+				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
+				OtherWorld.m_Solution.emplace(OtherWorld.m_Solution.begin(), iFound, flPredictedCounterpartPeak, iter->m_Value);
+				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
+
+				fnRecursiveFromY1(rgWorldlines, OtherWorld, pfnShouldCheck);
+			}
+		}
+
+	LAB_CONTINUE:;
+		++iter;
+	LAB_NEXT_CYCLE:;
+	}
+
+	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
+		fnRecursiveFromY1(rgWorldlines, ThisWorldline, pfnShouldCheck);
+	else
+		ThisWorldline.m_Solution.emplace(ThisWorldline.m_Solution.begin());	// Place a sealer dummy.
+}
+
+void fnRecursiveFromYn(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
 {
 	bool bAlreadyFoundOne = false;
 	double flFrontierPeak = ThisWorldline.m_Solution.back().m_yTypeIon;
@@ -558,15 +694,13 @@ void fnRecursiveY_Backward(list<AlternativeReality_t>& rgWorldlines, Alternative
 			}
 			else
 			{
-				rgWorldlines.emplace_back(ThisCopy);
-
-				AlternativeReality_t& OtherWorld = rgWorldlines.back();
+				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
 				OtherWorld.m_Solution.back().m_AminoAcid = iFound;
 				OtherWorld.m_Solution.back().m_bTypeIon = flPredictedCounterpartPeak;
 				OtherWorld.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
-				fnRecursiveY_Backward(rgWorldlines, OtherWorld, pfnShouldCheck);
+				fnRecursiveFromYn(rgWorldlines, OtherWorld, pfnShouldCheck);
 			}
 		}
 
@@ -576,7 +710,7 @@ void fnRecursiveY_Backward(list<AlternativeReality_t>& rgWorldlines, Alternative
 	}
 
 	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
-		fnRecursiveY_Backward(rgWorldlines, ThisWorldline, pfnShouldCheck);
+		fnRecursiveFromYn(rgWorldlines, ThisWorldline, pfnShouldCheck);
 }
 
 template<typename T> void PrintWorldline(const AlternativeReality_t& Worldline, const T& rgflOriginalMassData) noexcept
@@ -631,8 +765,9 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 	vector<MassPeak_t> rgflMassData2 = rgflMassData;
 	int iMPlusOne = (int)std::round(M_Plus_1);
 	int iMPlusTwo = (int)std::round(M2ZConversion<1, 2>(M_Plus_1));
+	auto const fnCheck = [&rgflMassData2](double flTest) -> bool { return flTest >= rgflMassData2.back() && flTest <= rgflMassData2.front(); };
 
-	// Handling full ion peak.
+#pragma region Mass peak preprocessing.
 	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); /* Does nothing. */)
 	{
 		if (int iMass = (int)std::round(*iter); iMass == iMPlusOne || iMass == iMPlusTwo)
@@ -645,72 +780,96 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 		++iter;
 	}
 	std::sort(rgflMassData2.begin(), rgflMassData2.end(), std::greater<MassPeak_t>());
+#pragma endregion Mass peak preprocessing.
 
-	list<AlternativeReality_t> rgBSideGuesses{ AlternativeReality_t{} };
-	AlternativeReality_t& FirstBWorldline = rgBSideGuesses.front();
-	FirstBWorldline.m_PendingPeaks = rgflMassData2;
-	FirstBWorldline.m_MPlusOne = M_Plus_1;
+#pragma region C-Terminal attempts
+	list<AlternativeReality_t> rgCTerminalGuesses{ AlternativeReality_t{} };
+	AlternativeReality_t& FirstCWorldline = rgCTerminalGuesses.front();
+	FirstCWorldline.m_PendingPeaks = rgflMassData2;
+	FirstCWorldline.m_MPlusOne = M_Plus_1;
 
-	for (auto iter = FirstBWorldline.m_PendingPeaks.begin(); iter != FirstBWorldline.m_PendingPeaks.end(); /* Does nothing. */)
+	for (auto iter = FirstCWorldline.m_PendingPeaks.begin(); iter != FirstCWorldline.m_PendingPeaks.end(); /* Does nothing. */)
 	{
 		if (int iNeutralLoss = (int)std::round(M_Plus_1 - *iter); iNeutralLoss == 146 || iNeutralLoss == 174)
 		{
 			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iNeutralLoss == 146 ? Lysine : Arginine].m_3Letters);
-			FirstBWorldline.m_Solution.emplace(FirstBWorldline.m_Solution.begin(), iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
-			FirstBWorldline.m_Solution.emplace(FirstBWorldline.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
-			iter = FirstBWorldline.m_PendingPeaks.erase(iter);
+			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
+			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
+			iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			continue;
 		}
 
 		++iter;
 	}
 
-	//if (FirstBWorldline.m_Solution.empty())
-	//{
-	//	for (auto iter = FirstBWorldline.m_PendingPeaks.begin(); iter != FirstBWorldline.m_PendingPeaks.end(); /* Does nothing. */)
-	//	{
-	//		if (int iMass = (int)std::round(*iter); iMass == 147 || iMass == 175)
-	//		{
-	//			std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iMass == 147 ? Lysine : Arginine].m_3Letters);
-	//			FirstBWorldline.m_Solution.emplace(FirstBWorldline.m_Solution.begin(), iMass == 147 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, *iter);
-	//			iter = FirstBWorldline.m_PendingPeaks.erase(iter);
-	//			continue;
-	//		}
-	//		++iter;
-	//	}
-	//}
+	if (FirstCWorldline.m_Solution.size() != 2)
+	{
+		for (auto iter = FirstCWorldline.m_PendingPeaks.begin(); iter != FirstCWorldline.m_PendingPeaks.end(); /* Does nothing. */)
+		{
+			if (int iMass = (int)std::round(*iter); iMass == 147 || iMass == 175)
+			{
+				std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iMass == 147 ? Lysine : Arginine].m_3Letters);
+				FirstCWorldline.m_Solution.emplace_back(iMass == 147 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, *iter);
+				iter = FirstCWorldline.m_PendingPeaks.erase(iter);
+			}
+			else
+				++iter;
+		}
 
-	//assert(/*FirstBWorldline.m_Solution.size() == 1 || */FirstBWorldline.m_Solution.size() == 2);
+		fnRecursiveFromY1(rgCTerminalGuesses, FirstCWorldline, fnCheck);
+	}
+	else
+		fnRecursiveFromBn(rgCTerminalGuesses, FirstCWorldline, fnCheck);
+#pragma endregion C-Terminal attempts
 
-	if (FirstBWorldline.m_Solution.size() == 2)
-		fnRecursiveB_Backward(rgBSideGuesses, FirstBWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
-
-	list<AlternativeReality_t> rgYSideGuesses {};
-	for (auto iter = rgflMassData2.begin(); iter != rgflMassData2.end(); ++iter)
+#pragma region N-Terminal attempts
+	list<AlternativeReality_t> rgNTerminalGuesses {};
+	for (auto iter = rgflMassData2.cbegin(); iter != rgflMassData2.cend(); ++iter)
 	{
 		if (AminoAcids_e iFound = TestNumber(M_Plus_1 - *iter); iFound != NOT_AN_AMINO_ACID)
 		{
 			std::cout << std::format("{} could be the y[n-1] ion and N-terminal amino acid could be {}.\n", iter->m_Value, g_rgAminoAcidsData[iFound].m_3Letters);
 
-			rgYSideGuesses.emplace_back();
-			AlternativeReality_t& AnotherYWorldline = rgYSideGuesses.back();
-			AnotherYWorldline.m_PendingPeaks = rgflMassData2;
-			AnotherYWorldline.m_MPlusOne = M_Plus_1;
+			AlternativeReality_t& AnotherNWorldline = rgNTerminalGuesses.emplace_back();
+			AnotherNWorldline.m_PendingPeaks = rgflMassData2;
+			AnotherNWorldline.m_MPlusOne = M_Plus_1;
 
-			AnotherYWorldline.m_Solution.emplace_back(iFound, g_rgAminoAcidsData[iFound].m_ResidueMass + amu::Hydrogen, M_Plus_1 /* y[n] is [M+1] ion. */);
-			AnotherYWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value /* y[n-1] */);
-			AnotherYWorldline.m_PendingPeaks.erase(std::find(AnotherYWorldline.m_PendingPeaks.begin(), AnotherYWorldline.m_PendingPeaks.end(), *iter));
+			AnotherNWorldline.m_Solution.emplace_back(iFound, g_rgAminoAcidsData[iFound].m_ResidueMass + amu::Hydrogen, M_Plus_1 /* y[n] is [M+1] ion. */);
+			AnotherNWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value /* y[n-1] */);
+			AnotherNWorldline.m_PendingPeaks.erase(std::find(AnotherNWorldline.m_PendingPeaks.begin(), AnotherNWorldline.m_PendingPeaks.end(), *iter));
 
-			fnRecursiveY_Backward(rgYSideGuesses, AnotherYWorldline, [rgflMassData2](double flAccumulatedMass) -> bool { return flAccumulatedMass >= rgflMassData2.back(); });
+			fnRecursiveFromYn(rgNTerminalGuesses, AnotherNWorldline, fnCheck);
 		}
 	}
 
+	if (rgNTerminalGuesses.empty())
+	{
+		for (auto iter = rgflMassData2.cbegin(); iter != rgflMassData2.cend(); ++iter)
+		{
+			if (AminoAcids_e iFound = TestNumber(*iter - amu::Hydrogen); iFound != NOT_AN_AMINO_ACID)
+			{
+				std::cout << std::format("{} could be the b1 ion and N-terminal amino acid could be {}.\n", iter->m_Value, g_rgAminoAcidsData[iFound].m_3Letters);
+
+				AlternativeReality_t& AnotherNWorldline = rgNTerminalGuesses.emplace_back();
+				AnotherNWorldline.m_PendingPeaks = rgflMassData2;
+				AnotherNWorldline.m_MPlusOne = M_Plus_1;
+
+				AnotherNWorldline.m_Solution.emplace_back(iFound, iter->m_Value, M_Plus_1 /* y[n] is [M+1] ion. */);
+				AnotherNWorldline.m_PendingPeaks.erase(std::find(AnotherNWorldline.m_PendingPeaks.begin(), AnotherNWorldline.m_PendingPeaks.end(), *iter));
+
+				fnRecursiveFromB1(rgNTerminalGuesses, AnotherNWorldline, fnCheck);
+			}
+		}
+	}
+#pragma endregion N-Terminal attempts
+
+#pragma region Merging results
 	list<AlternativeReality_t> rgExplanations{};
 
-	for (const auto& Worldline : rgYSideGuesses)
+	for (const auto& Worldline : rgNTerminalGuesses)
 	{
 		auto szSequence = Conclude(Worldline.m_Solution);
-		for (const auto& WorldlineCompareWith : rgBSideGuesses)
+		for (const auto& WorldlineCompareWith : rgCTerminalGuesses)
 		{
 			auto szSeqCompareWith = Conclude(WorldlineCompareWith.m_Solution);
 			auto pszSeqCompW = szSeqCompareWith.c_str();
@@ -745,11 +904,43 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 	}
 
 	rgExplanations.sort([](const AlternativeReality_t& lhs, const AlternativeReality_t& rhs) -> bool { return lhs.m_PendingPeaks.size() < rhs.m_PendingPeaks.size(); });
+#pragma endregion Merging results
 
-	for (const auto& Explanation : rgExplanations)
+	if (rgExplanations.empty())
 	{
-		PrintWorldline(Explanation, rgflMassData2);
-		cout_w() << "\n\n";
+		cout_gold() << "No sensible solution successfully combined.\n";
+
+		if (!rgNTerminalGuesses.empty())
+		{
+			cout_cyan() << "Listing N-terminal potential solution(s).\n";
+			for (const auto& Worldline : rgNTerminalGuesses)
+			{
+				PrintWorldline(Worldline, rgflMassData2);
+				cout_w() << "\n\n";
+			}
+		}
+		else
+			cout_r() << "No N-terminal potential solution.\n";
+
+		if (!rgCTerminalGuesses.empty())
+		{
+			cout_magenta() << "Listing C-terminal potential solution(s).\n";
+			for (const auto& Worldline : rgCTerminalGuesses)
+			{
+				PrintWorldline(Worldline, rgflMassData2);
+				cout_w() << "\n\n";
+			}
+		}
+		else
+			cout_r() << "No C-terminal potential solution.\n";
+	}
+	else
+	{
+		for (const auto& Explanation : rgExplanations)
+		{
+			PrintWorldline(Explanation, rgflMassData2);
+			cout_w() << "\n\n";
+		}
 	}
 
 	return rgExplanations;
@@ -766,27 +957,27 @@ void MarkPeaks(const AlternativeReality_t& Worldline, T& rgflMassPeaks)
 		{
 			// a
 			if (Cell.m_aTypeIon && !gcem::round(Peak - Cell.m_aTypeIon))
-				Peak.Identify(std::format("{}{}", (char)IonType::a, iCount));
+				Peak.Identify(std::format("a{}", iCount));
 
 			// b
 			else if (Cell.m_bNeutralLostIon && !gcem::round(Peak - Cell.m_bNeutralLostIon))
-				Peak.Identify(std::format("{}{}\'", (char)IonType::b, iCount));
+				Peak.Identify(std::format("b{}\'", iCount));
 			else if (Cell.m_bAsteriskIon && !gcem::round(Peak - Cell.m_bAsteriskIon))
-				Peak.Identify(std::format("{}{}*", (char)IonType::b, iCount));
+				Peak.Identify(std::format("b{}*", iCount));
 			else if (Cell.m_bCircleIon && !gcem::round(Peak - Cell.m_bCircleIon))
-				Peak.Identify(std::vformat((const char*)u8"{}{}°", std::make_format_args((char)IonType::b, iCount)));	// Fuck C++20
+				Peak.Identify(std::vformat((const char*)u8"b{}°", std::make_format_args(iCount)));	// Fuck C++20
 			else if (Cell.m_bTypeIon && !gcem::round(Peak - Cell.m_bTypeIon))
-				Peak.Identify(std::format("{}{}", (char)IonType::b, iCount));
+				Peak.Identify(std::format("b{}", iCount));
 
 			// y
 			else if (Cell.m_yNeutralLostIon && !gcem::round(Peak - Cell.m_yNeutralLostIon))
-				Peak.Identify(std::format("{}{}\'", (char)IonType::y, iTotalCount - iCount));
+				Peak.Identify(std::format("y{}\'", iTotalCount - iCount));
 			else if (Cell.m_yAsteriskIon && !gcem::round(Peak - Cell.m_yAsteriskIon))
-				Peak.Identify(std::format("{}{}*", (char)IonType::y, iTotalCount - iCount));
+				Peak.Identify(std::format("y{}*", iTotalCount - iCount));
 			else if (Cell.m_yCircleIon && !gcem::round(Peak - Cell.m_yCircleIon))
-				Peak.Identify(std::vformat((const char*)u8"{}{}°", std::make_format_args((char)IonType::y, iTotalCount - iCount)));
+				Peak.Identify(std::vformat((const char*)u8"y{}°", std::make_format_args(iTotalCount - iCount)));
 			else if (Cell.m_yTypeIon && !gcem::round(Peak - Cell.m_yTypeIon))
-				Peak.Identify(std::format("{}{}", (char)IonType::y, iTotalCount - iCount));
+				Peak.Identify(std::format("y{}", iTotalCount - iCount));
 		}
 
 		++iCount;
