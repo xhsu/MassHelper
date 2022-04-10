@@ -101,33 +101,6 @@ unordered_map<char, AminoAcid_t> g_rgAminoAcidsData =
 	{AminoAcids_e::Tryptophan,				{186.0793, 159, "Trp", NOTHINGNESS}},
 };
 
-export enum class IonType : char
-{
-	UNKNOWN_TYPE = '\0',
-
-	// Full polypeptide
-	M_PLUS_H = '1',
-	M_PLUS_2H = '2',
-	
-	// N-terminal
-	a = 'a', // C-C, alpha C and carboxylic C, counterpart x
-	b = 'b', // C-N, peptide bond, counterpart y
-	c = 'c', // N-C, amine group from next amino acid and its alpha C, counterpart z
-
-	// C-terminal
-	x = 'x',
-	y = 'y',
-	z = 'z',
-};
-
-export enum IonTrait : uint16
-{
-	NO_LOSS = 0U,
-	LOSS_H2O,
-	LOSS_NH3,
-	LOSS_SPEC_NEUTRAL,
-};
-
 export struct MassPeak_t
 {
 	constexpr MassPeak_t() noexcept {}
@@ -173,18 +146,18 @@ struct Cell_t
 		auto const iNeutralMass = g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 
 		if (!m_aTypeIon)
-			m_aTypeIon = m_bTypeIon - amu::Carbon - amu::Oxygen;
+			m_aTypeIon = m_bTypeIon - amu::MWt<"CO">;
 		if (!m_bNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_bNeutralLostIon = m_bTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 		if (!m_bAsteriskIon)
-			m_bAsteriskIon = m_bTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
+			m_bAsteriskIon = m_bTypeIon - amu::MWt<"NH3">;
 		if (!m_bCircleIon)
-			m_bCircleIon = m_bTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
+			m_bCircleIon = m_bTypeIon - amu::MWt<"H2O">;
 
 		if (!m_yCircleIon)
-			m_yCircleIon = m_yTypeIon - amu::Hydrogen * 2 - amu::Oxygen;
+			m_yCircleIon = m_yTypeIon - amu::MWt<"H2O">;
 		if (!m_yAsteriskIon)
-			m_yAsteriskIon = m_yTypeIon - amu::Hydrogen * 3 - amu::Nitrogen;
+			m_yAsteriskIon = m_yTypeIon - amu::MWt<"NH3">;
 		if (!m_yNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_yNeutralLostIon = m_yTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 	}
@@ -314,7 +287,7 @@ export string TestNumber3(double flPeakDiff) noexcept
 
 export double MolecularWeight(const string& szSeq) noexcept
 {
-	double ret = amu::Hydrogen * 2 + amu::Oxygen;	// Add H to -NH-, Add -OH to -CO-
+	double ret = amu::MWt<"H2O">;	// Add H to -NH-, Add -OH to -CO-
 
 	for (auto AminoAcid : szSeq)
 	{
@@ -793,7 +766,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 		if (int iNeutralLoss = (int)std::round(M_Plus_1 - *iter); iNeutralLoss == 146 || iNeutralLoss == 174)
 		{
 			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iNeutralLoss == 146 ? Lysine : Arginine].m_3Letters);
-			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
+			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
 			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
 			iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			continue;
@@ -809,7 +782,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 			if (int iMass = (int)std::round(*iter); iMass == 147 || iMass == 175)
 			{
 				std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iMass == 147 ? Lysine : Arginine].m_3Letters);
-				FirstCWorldline.m_Solution.emplace_back(iMass == 147 ? Lysine : Arginine, M_Plus_1 - 18 /* b[n] is [M+1] ion with a H2O loss. */, *iter);
+				FirstCWorldline.m_Solution.emplace_back(iMass == 147 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, *iter);
 				iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			}
 			else

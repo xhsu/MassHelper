@@ -53,6 +53,12 @@
     <ClCompile Include="PeriodicTable.ixx">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlColor.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlString.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">

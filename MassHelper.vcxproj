@@ -167,7 +167,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Hydrogenium\UtlColor.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
+    <ClCompile Include="..\Hydrogenium\UtlString.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlWinConsole.ixx" />
     <ClCompile Include="..\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="..\imgui\backends\imgui_impl_opengl2.cpp" />

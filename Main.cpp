@@ -180,8 +180,8 @@ void DrawAnalyzeWindow(void) noexcept
 	ImGui::Begin("Analyze");
 
 	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H]: {:.{}f}", g_flMPlusOne, g_iPrecision).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {:.{}f}", g_flMPlusOne - amu::Hydrogen * 2 - amu::Oxygen, g_iPrecision).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {:.{}f}", g_flMPlusOne - amu::Hydrogen * 3 - amu::Nitrogen, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {:.{}f}", g_flMPlusOne - amu::MWt<"H2O">, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {:.{}f}", g_flMPlusOne - amu::MWt<"NH3">, g_iPrecision).c_str());
 
 	ImGui::NewLine();
 
