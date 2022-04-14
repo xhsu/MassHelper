@@ -1,10 +1,10 @@
 module;
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <cfloat>
 #include <concepts>
+#include <deque>
 #include <format>
 #include <functional>
 #include <iostream>
@@ -20,7 +20,7 @@ import UtlWinConsole;
 
 import PeriodicTable;
 
-using std::array;
+using std::deque;
 using std::function;
 using std::list;
 using std::pair;
@@ -215,7 +215,7 @@ export struct AlternativeReality_t
 
 	double m_MPlusOne = 0;
 	vector<MassPeak_t> m_PendingPeaks{};
-	vector<Cell_t> m_Solution{};
+	deque<Cell_t> m_Solution{};	// Why deque? We need both emplace_front() and index-based access.
 };
 
 export template<uint16 iChargeFrom, uint16 iChargeTo>
@@ -524,7 +524,7 @@ void fnRecursiveFromBn(list<AlternativeReality_t>& rgWorldlines, AlternativeReal
 				bAlreadyFoundOne = true;
 				ThisWorldline.m_Solution.front().m_AminoAcid = iFound;
 				ThisWorldline.m_Solution.front().m_yTypeIon = flPredictedCounterpartPeak;
-				ThisWorldline.m_Solution.emplace(ThisWorldline.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value);
+				ThisWorldline.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value);
 
 				iter = ThisWorldline.m_PendingPeaks.erase(iter);
 				continue;
@@ -534,7 +534,7 @@ void fnRecursiveFromBn(list<AlternativeReality_t>& rgWorldlines, AlternativeReal
 				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
 				OtherWorld.m_Solution.front().m_AminoAcid = iFound;
 				OtherWorld.m_Solution.front().m_yTypeIon = flPredictedCounterpartPeak;
-				OtherWorld.m_Solution.emplace(OtherWorld.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value);
+				OtherWorld.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
 				fnRecursiveFromBn(rgWorldlines, OtherWorld, pfnShouldCheck);
@@ -593,7 +593,7 @@ void fnRecursiveFromY1(list<AlternativeReality_t>& rgWorldlines, AlternativeReal
 			if (!bAlreadyFoundOne)
 			{
 				bAlreadyFoundOne = true;
-				ThisWorldline.m_Solution.emplace(ThisWorldline.m_Solution.begin(), iFound, flPredictedCounterpartPeak, iter->m_Value);
+				ThisWorldline.m_Solution.emplace_front(iFound, flPredictedCounterpartPeak, iter->m_Value);
 
 				iter = decltype(iter)(ThisWorldline.m_PendingPeaks.erase(std::next(iter).base()));
 				continue;
@@ -601,7 +601,7 @@ void fnRecursiveFromY1(list<AlternativeReality_t>& rgWorldlines, AlternativeReal
 			else
 			{
 				AlternativeReality_t& OtherWorld = rgWorldlines.emplace_back(ThisCopy);
-				OtherWorld.m_Solution.emplace(OtherWorld.m_Solution.begin(), iFound, flPredictedCounterpartPeak, iter->m_Value);
+				OtherWorld.m_Solution.emplace_front(iFound, flPredictedCounterpartPeak, iter->m_Value);
 				OtherWorld.m_PendingPeaks.erase(std::find(OtherWorld.m_PendingPeaks.begin(), OtherWorld.m_PendingPeaks.end(), *iter));
 
 				fnRecursiveFromY1(rgWorldlines, OtherWorld, pfnShouldCheck);
@@ -616,7 +616,7 @@ void fnRecursiveFromY1(list<AlternativeReality_t>& rgWorldlines, AlternativeReal
 	if (bAlreadyFoundOne && !ThisWorldline.m_PendingPeaks.empty())
 		fnRecursiveFromY1(rgWorldlines, ThisWorldline, pfnShouldCheck);
 	else
-		ThisWorldline.m_Solution.emplace(ThisWorldline.m_Solution.begin());	// Place a sealer dummy.
+		ThisWorldline.m_Solution.emplace_front();	// Place a sealer dummy.
 }
 
 void fnRecursiveFromYn(list<AlternativeReality_t>& rgWorldlines, AlternativeReality_t& ThisWorldline, const function<bool(double)>& pfnShouldCheck) noexcept
@@ -771,8 +771,8 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 		if (int iNeutralLoss = (int)std::round(M_Plus_1 - *iter); iNeutralLoss == 146 || iNeutralLoss == 174)
 		{
 			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iNeutralLoss == 146 ? Lysine : Arginine].m_3Letters);
-			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
-			FirstCWorldline.m_Solution.emplace(FirstCWorldline.m_Solution.begin(), NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
+			FirstCWorldline.m_Solution.emplace_front(iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
+			FirstCWorldline.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
 			iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			continue;
 		}
