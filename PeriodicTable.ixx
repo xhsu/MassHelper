@@ -6,7 +6,7 @@ export module PeriodicTable;
 
 import UtlString;
 
-export namespace amu
+export namespace Monoisotopic
 {
 	constexpr double Hydrogen = 1.007825031898;	// H-1
 

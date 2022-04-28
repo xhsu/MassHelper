@@ -151,18 +151,18 @@ struct Cell_t
 		auto const iNeutralMass = g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 
 		if (!m_aTypeIon)
-			m_aTypeIon = m_bTypeIon - amu::MWt<"CO">;
+			m_aTypeIon = m_bTypeIon - Monoisotopic::MWt<"CO">;
 		if (!m_bNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_bNeutralLostIon = m_bTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 		if (!m_bAsteriskIon)
-			m_bAsteriskIon = m_bTypeIon - amu::MWt<"NH3">;
+			m_bAsteriskIon = m_bTypeIon - Monoisotopic::MWt<"NH3">;
 		if (!m_bCircleIon)
-			m_bCircleIon = m_bTypeIon - amu::MWt<"H2O">;
+			m_bCircleIon = m_bTypeIon - Monoisotopic::MWt<"H2O">;
 
 		if (!m_yCircleIon)
-			m_yCircleIon = m_yTypeIon - amu::MWt<"H2O">;
+			m_yCircleIon = m_yTypeIon - Monoisotopic::MWt<"H2O">;
 		if (!m_yAsteriskIon)
-			m_yAsteriskIon = m_yTypeIon - amu::MWt<"NH3">;
+			m_yAsteriskIon = m_yTypeIon - Monoisotopic::MWt<"NH3">;
 		if (!m_yNeutralLostIon && m_AminoAcid != NOT_AN_AMINO_ACID && iNeutralMass && iNeutralMass != 17 && iNeutralMass != 18)
 			m_yNeutralLostIon = m_yTypeIon - g_rgAminoAcidsData[m_AminoAcid].m_NeutralLoss.m_Mass;
 	}
@@ -226,7 +226,7 @@ constexpr decltype(auto) M2ZConversion(std::floating_point auto flFrom) noexcept
 	constexpr int iChargeDiff = iChargeTo - iChargeFrom;
 
 	flFrom *= T(iChargeFrom);
-	flFrom += T(iChargeDiff) * amu::Hydrogen;
+	flFrom += T(iChargeDiff) * Monoisotopic::Hydrogen;
 	flFrom /= T(iChargeTo);
 
 	return flFrom;
@@ -292,7 +292,7 @@ export string TestNumber3(double flPeakDiff) noexcept
 
 export double MolecularWeight(const string& szSeq) noexcept
 {
-	double ret = amu::MWt<"H2O">;	// Add H to -NH-, Add -OH to -CO-
+	double ret = Monoisotopic::MWt<"H2O">;	// Add H to -NH-, Add -OH to -CO-
 
 	for (auto AminoAcid : szSeq)
 	{
@@ -771,7 +771,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 		if (int iNeutralLoss = (int)std::round(M_Plus_1 - *iter); iNeutralLoss == 146 || iNeutralLoss == 174)
 		{
 			std::cout << std::format("{} is the b[n-1] ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iNeutralLoss == 146 ? Lysine : Arginine].m_3Letters);
-			FirstCWorldline.m_Solution.emplace_front(iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
+			FirstCWorldline.m_Solution.emplace_front(iNeutralLoss == 146 ? Lysine : Arginine, M_Plus_1 - Monoisotopic::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, iNeutralLoss + 1);
 			FirstCWorldline.m_Solution.emplace_front(NOT_AN_AMINO_ACID, iter->m_Value /* b[n-1] */);
 			iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			continue;
@@ -787,7 +787,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 			if (int iMass = (int)std::round(*iter); iMass == 147 || iMass == 175)
 			{
 				std::cout << std::format("{} is the y1 ion and the C-terminal amino acid is {}.\n", iter->m_Value, g_rgAminoAcidsData[iMass == 147 ? Lysine : Arginine].m_3Letters);
-				FirstCWorldline.m_Solution.emplace_back(iMass == 147 ? Lysine : Arginine, M_Plus_1 - amu::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, *iter);
+				FirstCWorldline.m_Solution.emplace_back(iMass == 147 ? Lysine : Arginine, M_Plus_1 - Monoisotopic::MWt<"H2O"> /* b[n] is [M+1] ion with a H2O loss. */, *iter);
 				iter = FirstCWorldline.m_PendingPeaks.erase(iter);
 			}
 			else
@@ -812,7 +812,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 			AnotherNWorldline.m_PendingPeaks = rgflMassData2;
 			AnotherNWorldline.m_MPlusOne = M_Plus_1;
 
-			AnotherNWorldline.m_Solution.emplace_back(iFound, g_rgAminoAcidsData[iFound].m_ResidueMass + amu::Hydrogen, M_Plus_1 /* y[n] is [M+1] ion. */);
+			AnotherNWorldline.m_Solution.emplace_back(iFound, g_rgAminoAcidsData[iFound].m_ResidueMass + Monoisotopic::Hydrogen, M_Plus_1 /* y[n] is [M+1] ion. */);
 			AnotherNWorldline.m_Solution.emplace_back(NOT_AN_AMINO_ACID, 0, iter->m_Value /* y[n-1] */);
 			AnotherNWorldline.m_PendingPeaks.erase(std::find(AnotherNWorldline.m_PendingPeaks.begin(), AnotherNWorldline.m_PendingPeaks.end(), *iter));
 
@@ -824,7 +824,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 	{
 		for (auto iter = rgflMassData2.cbegin(); iter != rgflMassData2.cend(); ++iter)
 		{
-			if (AminoAcids_e iFound = TestNumber(*iter - amu::Hydrogen); iFound != NOT_AN_AMINO_ACID)
+			if (AminoAcids_e iFound = TestNumber(*iter - Monoisotopic::Hydrogen); iFound != NOT_AN_AMINO_ACID)
 			{
 				std::cout << std::format("{} could be the b1 ion and N-terminal amino acid could be {}.\n", iter->m_Value, g_rgAminoAcidsData[iFound].m_3Letters);
 
@@ -859,7 +859,7 @@ list<AlternativeReality_t> Solve(const vector<MassPeak_t>& rgflMassData, double 
 					s.erase(s.length() - iLength);
 					s += szSeqCompareWith;
 
-					if (std::round(MolecularWeight(s) + amu::Hydrogen - M_Plus_1))
+					if (std::round(MolecularWeight(s) + Monoisotopic::Hydrogen - M_Plus_1))
 						continue;
 
 					auto& MergedWorldline = rgExplanations.emplace_back();
