@@ -124,8 +124,8 @@ export struct MassPeak_t
 
 	constexpr bool Approx(double v) const noexcept { return !(bool)gcem::round(m_Value - v); }
 
-	constexpr auto operator<=> (Arithmetic auto rhs) const noexcept { return m_Value <=> rhs; }
-	constexpr bool operator== (Arithmetic auto rhs) const noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
+	constexpr auto operator<=> (Arithmetic auto const& rhs) const noexcept { return m_Value <=> rhs; }
+	constexpr bool operator== (Arithmetic auto const& rhs) const noexcept { return gcem::abs(m_Value - rhs) <= DBL_EPSILON; }
 	constexpr operator double& () noexcept { return m_Value; }
 	constexpr operator const double& () const noexcept { return m_Value; }
 };
