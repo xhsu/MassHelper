@@ -15,6 +15,8 @@
 import MassHelper;
 import PeriodicTable;
 
+import UtlKeyValues;
+import UtlString;
 import UtlWinConsole;
 
 using std::list;
@@ -22,9 +24,9 @@ using std::string;
 using std::vector;
 
 // Example 1 SAMPLER
-vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
-double g_flMPlusOne = 402 * 2 - 1;
-string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304\n387\n402\n417\n500\n514\n611\n597\n629\n645\n716";
+//vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
+//double g_flMPlusOne = 402 * 2 - 1;
+//string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304\n387\n402\n417\n500\n514\n611\n597\n629\n645\n716";
 
 // Example 2 CHEMISTK
 //vector<MassPeak_t> g_rgflMassData = { 86, 110, 147, 207, 230, 248, 270, 298, 317, 335, 409, 399, 427, 448, 503, 510, 558, 579, 671, 708, 845 };
@@ -47,9 +49,9 @@ string g_szInputMassData = "86\n113\n131\n141\n159\n175\n158\n262\n286\n290\n304
 //string g_szInputMassData = "308.2\n310.2\n424.2\n459.2\n494.3\n608.3\n610.3\n723.4\n771.4\n780.4";
 
 // Example 6 NTDGTQIIGYmTVNSR
-//vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 730.4, 843.5, 886.3, 893.4, 900.5, 943.3, 1056.4, 1063.6, 1146.6, 1192.6, 1210.6, 1169.5, 1297.6, 1311.7, 1380.7, 1398.7, 1410.7, 1455.7, 1524.7, 1552.7, 1570.8, 1611.7, 1671.8 };
-//double g_flMPlusOne = 1785.8436;
-//string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
+vector<MassPeak_t> g_rgflMassData = { 548.2, 558.2, 576.2, 617.3, 659.3, 723.3, 730.4, 843.5, 886.3, 893.4, 900.5, 943.3, 1056.4, 1063.6, 1146.6, 1192.6, 1210.6, 1169.5, 1297.6, 1311.7, 1380.7, 1398.7, 1410.7, 1455.7, 1524.7, 1552.7, 1570.8, 1611.7, 1671.8 };
+double g_flMPlusOne = 1785.8436;
+string g_szInputMassData = "548.2\n558.2\n576.2\n617.3\n659.3\n723.3\n730.4\n843.5\n886.3\n893.4\n900.5\n943.3\n1056.4\n1063.6\n1146.6\n1192.6\n1210.6\n1169.5\n1297.6\n1311.7\n1380.7\n1398.7\n1410.7\n1455.7\n1524.7\n1552.7\n1570.8\n1611.7\n1671.8";
 
 double g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne), g_flMPlusThree = M2ZConversion<1, 3>(g_flMPlusOne);
 
@@ -57,6 +59,7 @@ int g_iPrecision = 4;
 list<AlternativeReality_t> g_rgExplanations;
 string g_szSelectedWorldline;
 MassPeak_t g_SelectedPeak;
+ValveKeyValues* g_Config = nullptr;
 
 
 void DrawInputWindow(void) noexcept
@@ -98,7 +101,7 @@ void DrawInputWindow(void) noexcept
 
 		while (string::npos != pos || string::npos != lastPos)
 		{
-			g_rgflMassData.emplace_back(std::stod(g_szInputMassData.substr(lastPos, pos - lastPos)));
+			g_rgflMassData.emplace_back(UTIL_StrToNum<double>(g_szInputMassData.substr(lastPos, pos - lastPos)));
 			lastPos = g_szInputMassData.find_first_not_of(",\n \t", pos);
 			pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
 		}
@@ -210,8 +213,34 @@ void DrawAnalyzeWindow(void) noexcept
 
 int main(int, char**) noexcept
 {
+	//std::cout << amu::MWt<"SCNOCH2C6H5">;
+
 	// 101 basically setup for ANY C++ project.
 	std::ios_base::sync_with_stdio(false);
+
+	g_Config = new ValveKeyValues("Config");
+	if (g_Config->LoadFromFile("MassHelper.cfg"))
+	{
+		g_iPrecision = g_Config->GetValue<int>("Precision");
+		g_flMPlusOne = g_Config->GetValue<double>("[M+1]");
+		g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne);
+		g_flMPlusThree = M2ZConversion<1, 3>(g_flMPlusOne);
+
+		g_szInputMassData = g_Config->GetValue<string>("Peaks");
+		g_rgflMassData.clear();
+
+		auto lastPos = g_szInputMassData.find_first_not_of(",\n \t", 0);
+		auto pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
+
+		while (string::npos != pos || string::npos != lastPos)
+		{
+			g_rgflMassData.emplace_back(std::stod(g_szInputMassData.substr(lastPos, pos - lastPos)));
+			lastPos = g_szInputMassData.find_first_not_of(",\n \t", pos);
+			pos = g_szInputMassData.find_first_of(",\n \t", lastPos);
+		}
+
+		std::sort(g_rgflMassData.begin(), g_rgflMassData.end(), std::less<MassPeak_t>());
+	}
 
 	// Setup window
 	glfwSetErrorCallback([](int error, const char* description) { LOG_ERROR("Error {}: {}\n", error, description); });
@@ -287,6 +316,14 @@ int main(int, char**) noexcept
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
+
+	g_Config->SetValue("Precision", g_iPrecision);
+	g_Config->SetValue("[M+1]", g_flMPlusOne);
+	g_Config->SetValue("Peaks", g_szInputMassData);
+	g_Config->SaveToFile("MassHelper.cfg");
+
+	delete g_Config;
+	g_Config = nullptr;
 
 	cout_w();
 	return EXIT_SUCCESS;

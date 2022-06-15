@@ -98,7 +98,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -116,7 +116,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -134,7 +134,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -152,7 +152,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -167,8 +167,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Hydrogenium\UtlArithmetic.ixx" />
+    <ClCompile Include="..\Hydrogenium\UtlBuffer.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlColor.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlConcepts.ixx" />
+    <ClCompile Include="..\Hydrogenium\UtlKeyValues.ixx" />
+    <ClCompile Include="..\Hydrogenium\UtlLinearAlgebra.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlString.ixx" />
     <ClCompile Include="..\Hydrogenium\UtlWinConsole.ixx" />
     <ClCompile Include="..\imgui\backends\imgui_impl_glfw.cpp" />

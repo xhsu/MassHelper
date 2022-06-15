@@ -62,6 +62,18 @@
     <ClCompile Include="..\imgui\misc\freetype\imgui_freetype.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlKeyValues.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlBuffer.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlLinearAlgebra.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Hydrogenium\UtlArithmetic.ixx">
+      <Filter>Hydeogenium</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\imgui\imconfig.h">

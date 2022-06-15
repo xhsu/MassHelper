@@ -202,13 +202,13 @@ namespace Monoisotopic
 	{
 		using Shortened = StringLiteral<char, STR.size - 1>;
 
-#define SIMP_ELEM(elem)	else if constexpr (STR[0] == #elem[0])	\
-							return _impl_MWt<Shortened(&STR[1]), STR[0], flAccumulatedWt + flAtomWt * std::max(1U, iAtomCt), elem, 0>()
-#define COMP_ELEM(Upper, Lower, elem)	else if constexpr (cLast == Upper && STR[0] == Lower)	\
-											return _impl_MWt<Shortened(&STR[1]), STR[0], flAccumulatedWt, elem, 0>()
+#define SIMP_ELEM(elem)	else if constexpr (STR[0U] == #elem[0])	\
+							return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt + flAtomWt * std::max(1U, iAtomCt), elem, 0>()
+#define COMP_ELEM(Upper, Lower, elem)	else if constexpr (cLast == Upper && STR[0U] == Lower)	\
+											return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt, elem, 0>()
 
 		// Error handle.
-		if constexpr (STR[0] && !isdigit_c(STR[0]) && !islower_c(STR[0]) && !isupper_c(STR[0]))
+		if constexpr (STR[0U] && !isdigit_c(STR[0U]) && !islower_c(STR[0U]) && !isupper_c(STR[0U]))
 			return -1.0;
 
 		// Period 1
@@ -239,14 +239,14 @@ namespace Monoisotopic
 #undef COMP_ELEM
 
 		// Digit handling.
-		else if constexpr (isdigit_c(STR[0]))
-			return _impl_MWt<Shortened(&STR[1]), STR[0], flAccumulatedWt, flAtomWt, iAtomCt * 10 + (STR[0] - '0')>();
+		else if constexpr (isdigit_c(STR[0U]))
+			return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt, flAtomWt, iAtomCt * 10 + (STR[0U] - '0')>();
 
 		// General case of letters
-		else if constexpr (isupper_c(STR[0]))
-			return _impl_MWt<Shortened(&STR[1]), STR[0], flAccumulatedWt + flAtomWt * std::max(1U, iAtomCt), 0.0, 0>();
-		else if constexpr (islower_c(STR[0]))
-			return _impl_MWt<Shortened(&STR[1]), STR[0], flAccumulatedWt, 0.0, 0>();
+		else if constexpr (isupper_c(STR[0U]))
+			return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt + flAtomWt * std::max(1U, iAtomCt), 0.0, 0>();
+		else if constexpr (islower_c(STR[0U]))
+			return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt, 0.0, 0>();
 
 		// Final.
 		else
