@@ -3,6 +3,7 @@
 #include <iostream>
 #include <list>
 #include <vector>
+#include <codecvt>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -10,7 +11,10 @@
 #include <backends/imgui_impl_opengl2.h>
 #include <GLFW/glfw3.h>
 
+
 #define LOG_ERROR(text, ...)	std::cout << std::format(text, __VA_ARGS__)
+//#define UTF8_WARP(w_text)	reinterpret_cast<const char*>(UTIL_EncodingConversion<char8_t>(w_text.c_str()).c_str())
+#define UTF8_WARP(w_text)	std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(w_text).c_str()
 
 import MassHelper;
 import PeriodicTable;
@@ -22,6 +26,7 @@ import UtlWinConsole;
 using std::list;
 using std::string;
 using std::vector;
+using std::wstring;
 
 // Example 1 SAMPLER
 //vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
@@ -57,7 +62,7 @@ double g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne), g_flMPlusThree = M2ZCon
 
 int g_iPrecision = 4;
 list<AlternativeReality_t> g_rgExplanations;
-string g_szSelectedWorldline;
+wstring g_szSelectedWorldline;
 MassPeak_t g_SelectedPeak;
 ValveKeyValues* g_Config = nullptr;
 
@@ -135,7 +140,7 @@ void DrawInputWindow(void) noexcept
 		ImGui::TableSetColumnIndex(2);
 		ImGui::TextUnformatted(std::format("{:.{}f}", -g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(TestNumber3(g_SelectedPeak.m_Value).c_str());
+		ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(g_SelectedPeak.m_Value)));
 
 		// Showing actual peak.
 		for (auto& Peak : g_rgflMassData)
@@ -157,7 +162,9 @@ void DrawInputWindow(void) noexcept
 			ImGui::TextUnformatted(std::format("{:.{}f}", Peak - g_SelectedPeak, g_iPrecision).c_str());
 
 			ImGui::TableSetColumnIndex(3);
-			ImGui::TextUnformatted(TestNumber3(std::abs(g_SelectedPeak - Peak)).c_str());
+			ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak))));
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak), false)));
 		}
 
 		// Showing the [M+1] option.
@@ -170,7 +177,7 @@ void DrawInputWindow(void) noexcept
 		ImGui::TableSetColumnIndex(2);
 		ImGui::TextUnformatted(std::format("{:.{}f}", g_flMPlusOne - g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(TestNumber3(std::abs(g_SelectedPeak - g_flMPlusOne)).c_str());
+		ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - g_flMPlusOne))));
 
 		ImGui::EndTable();
 	}
@@ -198,8 +205,7 @@ void DrawAnalyzeWindow(void) noexcept
 
 	for (const auto& Worldline : g_rgExplanations)
 	{
-		auto szSeq = Conclude<true>(Worldline.m_Solution);
-		if (ImGui::RadioButton(szSeq.c_str(), g_szSelectedWorldline == szSeq))
+		if (auto const szSeq = Conclude<true>(Worldline.m_Solution); ImGui::RadioButton(UTF8_WARP(szSeq), g_szSelectedWorldline == szSeq))
 		{
 			g_szSelectedWorldline = szSeq;
 
@@ -213,8 +219,6 @@ void DrawAnalyzeWindow(void) noexcept
 
 int main(int, char**) noexcept
 {
-	//std::cout << amu::MWt<"SCNOCH2C6H5">;
-
 	// 101 basically setup for ANY C++ project.
 	std::ios_base::sync_with_stdio(false);
 

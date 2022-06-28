@@ -144,11 +144,11 @@ export namespace ArStd
 		{
 			return std::make_pair
 			(
-				std::get<MASS>(rgfl[0]) * (1.0 - (std::get<LOW>(rgfl[I + 1]) + ...))	// Initial value. Assuming the lightest isotope is at maxium.
-				+ ((std::get<MASS>(rgfl[I + 1]) * std::get<LOW>(rgfl[I + 1])) + ...),	// Everything else is at minium.
+				std::get<MASS>(rgfl[0]) * (1.0 - (std::get<LOW>(rgfl[I + 1]) + ...))	// Initial value. Assuming the lightest isotope is at maximum.
+				+ ((std::get<MASS>(rgfl[I + 1]) * std::get<LOW>(rgfl[I + 1])) + ...),	// Everything else is at minimum.
 
-				std::get<MASS>(rgfl[0]) * (1.0 - (std::get<HIGH>(rgfl[I + 1]) + ...))	// This is just the inversed case of 'min'. Assuming the lightest isotope is at minium.
-				+ ((std::get<MASS>(rgfl[I + 1]) * std::get<HIGH>(rgfl[I + 1])) + ...)	// Everything else is at maxium.
+				std::get<MASS>(rgfl[0]) * (1.0 - (std::get<HIGH>(rgfl[I + 1]) + ...))	// This is just the inversed case of 'min'. Assuming the lightest isotope is at minimum.
+				+ ((std::get<MASS>(rgfl[I + 1]) * std::get<HIGH>(rgfl[I + 1])) + ...)	// Everything else is at maximum.
 			);
 		}
 		(std::make_index_sequence<N - 1>{});
@@ -200,7 +200,7 @@ namespace Monoisotopic
 	requires (STR.size >= 1)
 	consteval double _impl_MWt(void) noexcept
 	{
-		using Shortened = StringLiteral<char, STR.size - 1>;
+		using Shortened = StringLiteral<decltype(STR)::Char_t, STR.size - 1>;
 
 #define SIMP_ELEM(elem)	else if constexpr (STR[0U] == #elem[0])	\
 							return _impl_MWt<Shortened(&STR[1U]), STR[0U], flAccumulatedWt + flAtomWt * std::max(1U, iAtomCt), elem, 0>()
