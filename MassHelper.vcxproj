@@ -98,7 +98,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_CRT_SECURE_NO_WARNINGS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -116,7 +116,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_CRT_SECURE_NO_WARNINGS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_DEBUG_TOOLS;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -134,7 +134,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_CRT_SECURE_NO_WARNINGS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -152,7 +152,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_METRICS_WINDOW;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING;_CRT_SECURE_NO_WARNINGS;IMGUI_DISABLE_OBSOLETE_FUNCTIONS;IMGUI_USE_STB_SPRINTF;IMGUI_ENABLE_FREETYPE;IMGUI_DISABLE_DEMO_WINDOWS;IMGUI_DISABLE_DEBUG_TOOLS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir)..\Hydrogenium\gcem\include\;$(ProjectDir)..\imgui\;$(ProjectDir)..\freetype-windows-binaries\include;$(ProjectDir)..\glfw\include\;$(ProjectDir)..\stb\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
