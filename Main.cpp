@@ -1,20 +1,15 @@
 #include <algorithm>
-#include <format>
-#include <iostream>
 #include <list>
 #include <vector>
-#include <codecvt>
 
+#include <fmt/color.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl2.h>
 #include <GLFW/glfw3.h>
 
-
-#define LOG_ERROR(text, ...)	std::cout << std::format(text, __VA_ARGS__)
-//#define UTF8_WARP(w_text)	reinterpret_cast<const char*>(UTIL_EncodingConversion<char8_t>(w_text.c_str()).c_str())
-#define UTF8_WARP(w_text)	std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(w_text).c_str()
+#define LOG_ERROR(text, ...)	fmt::print(bg(fmt::color::red), text, __VA_ARGS__)
 
 import MassHelper;
 import PeriodicTable;
@@ -26,7 +21,6 @@ import UtlWinConsole;
 using std::list;
 using std::string;
 using std::vector;
-using std::wstring;
 
 // Example 1 SAMPLER
 //vector<MassPeak_t> g_rgflMassData = { 86, 113, 131, 141, 159, 175, 158, 262, 286, 290, 304, 387, 402, 417, 500, 514, 611, 597, 629, 645, 716 };
@@ -62,10 +56,10 @@ double g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne), g_flMPlusThree = M2ZCon
 
 int g_iPrecision = 4;
 list<AlternativeReality_t> g_rgExplanations;
-wstring g_szSelectedWorldline;
+string g_szSelectedWorldline;
 MassPeak_t g_SelectedPeak;
 ValveKeyValues* g_Config = nullptr;
-
+IgnoreLevel_e g_iIgnoreLevel = IGNORE_UNCOMMON;
 
 void DrawInputWindow(void) noexcept
 {
@@ -138,9 +132,9 @@ void DrawInputWindow(void) noexcept
 		if (ImGui::RadioButton("Naught", g_SelectedPeak == 0))
 			g_SelectedPeak = MassPeak_t{};
 		ImGui::TableSetColumnIndex(2);
-		ImGui::TextUnformatted(std::format("{:.{}f}", -g_SelectedPeak, g_iPrecision).c_str());
+		ImGui::TextUnformatted(fmt::format("{:.{}f}", -g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(g_SelectedPeak.m_Value)));
+		ImGui::TextUnformatted(SummaryPeakAsString(g_SelectedPeak.m_Value, g_iPrecision, g_iIgnoreLevel).c_str());
 
 		// Showing actual peak.
 		for (auto& Peak : g_rgflMassData)
@@ -148,7 +142,7 @@ void DrawInputWindow(void) noexcept
 			ImGui::TableNextRow();
 
 			ImGui::TableSetColumnIndex(0);
-			if (ImGui::RadioButton(std::format("{:.{}f}", Peak.m_Value, g_iPrecision).c_str(), g_SelectedPeak == Peak))
+			if (ImGui::RadioButton(fmt::format("{:.{}f}", Peak.m_Value, g_iPrecision).c_str(), g_SelectedPeak == Peak))
 				g_SelectedPeak = Peak;
 
 			ImGui::TableSetColumnIndex(1);
@@ -159,25 +153,25 @@ void DrawInputWindow(void) noexcept
 			ImGui::PopID();
 
 			ImGui::TableSetColumnIndex(2);
-			ImGui::TextUnformatted(std::format("{:.{}f}", Peak - g_SelectedPeak, g_iPrecision).c_str());
+			ImGui::TextUnformatted(fmt::format("{:.{}f}", Peak - g_SelectedPeak, g_iPrecision).c_str());
 
 			ImGui::TableSetColumnIndex(3);
-			ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak))));
+			ImGui::TextUnformatted(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak), g_iPrecision, g_iIgnoreLevel).c_str());
 			if (ImGui::IsItemHovered())
-				ImGui::SetTooltip(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak), false)));
+				ImGui::SetTooltip(SummaryPeakAsString(std::abs(g_SelectedPeak - Peak), g_iPrecision, g_iIgnoreLevel, false).c_str());
 		}
 
 		// Showing the [M+1] option.
 		ImGui::TableNextRow();
 		ImGui::TableSetColumnIndex(0);
-		if (ImGui::RadioButton(std::format("{:.{}f}", g_flMPlusOne, g_iPrecision).c_str(), g_SelectedPeak == g_flMPlusOne))
+		if (ImGui::RadioButton(fmt::format("{:.{}f}", g_flMPlusOne, g_iPrecision).c_str(), g_SelectedPeak == g_flMPlusOne))
 			g_SelectedPeak = g_flMPlusOne;
 		ImGui::TableSetColumnIndex(1);
 		ImGui::TextUnformatted("[M+H]");
 		ImGui::TableSetColumnIndex(2);
-		ImGui::TextUnformatted(std::format("{:.{}f}", g_flMPlusOne - g_SelectedPeak, g_iPrecision).c_str());
+		ImGui::TextUnformatted(fmt::format("{:.{}f}", g_flMPlusOne - g_SelectedPeak, g_iPrecision).c_str());
 		ImGui::TableSetColumnIndex(3);
-		ImGui::TextUnformatted(UTF8_WARP(SummaryPeakAsString(std::abs(g_SelectedPeak - g_flMPlusOne))));
+		ImGui::TextUnformatted(SummaryPeakAsString(std::abs(g_SelectedPeak - g_flMPlusOne), g_iPrecision, g_iIgnoreLevel).c_str());
 
 		ImGui::EndTable();
 	}
@@ -189,35 +183,41 @@ void DrawAnalyzeWindow(void) noexcept
 {
 	ImGui::Begin("Analyze");
 
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H]: {:.{}f}", g_flMPlusOne, g_iPrecision).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - H2O: {:.{}f}", g_flMPlusOne - Monoisotopic::MWt<"H2O">, g_iPrecision).c_str());
-	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(std::format("[M+H] - NH3: {:.{}f}", g_flMPlusOne - Monoisotopic::MWt<"NH3">, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(fmt::format("[M+H]: {:.{}f}", g_flMPlusOne, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(fmt::format("[M+H] - H2O: {:.{}f}", g_flMPlusOne - Monoisotopic::MWt<"H2O">, g_iPrecision).c_str());
+	ImGui::Bullet(); ImGui::SameLine(); ImGui::TextUnformatted(fmt::format("[M+H] - NH3: {:.{}f}", g_flMPlusOne - Monoisotopic::MWt<"NH3">, g_iPrecision).c_str());
+
+	ImGui::NewLine();
+
+	static int iSelection{ g_iIgnoreLevel };
+	if (ImGui::Combo("ignored", &iSelection, "All modifications\0Uncommon modifications\0Nothing\0\0"))
+		g_iIgnoreLevel = (IgnoreLevel_e)std::clamp<int>(iSelection, IGNORE_ALL_MODIFICATION, IGNORE_NOTHING);
 
 	ImGui::NewLine();
 
 	if (ImGui::Button("Deduce") && g_flMPlusOne > 0)
 	{
 		clear_console();
-		g_rgExplanations = Solve(g_rgflMassData, g_flMPlusOne);
+		g_rgExplanations = Solve(g_rgflMassData, g_flMPlusOne, g_iPrecision, g_iIgnoreLevel);
 	}
 
 	ImGui::NewLine();
 
 	for (const auto& Worldline : g_rgExplanations)
 	{
-		if (auto const szSeq = Conclude<true>(Worldline.m_Solution); ImGui::RadioButton(UTF8_WARP(szSeq), g_szSelectedWorldline == szSeq))
+		if (auto const szSeq = Conclude<true>(Worldline.m_Solution); ImGui::RadioButton(szSeq.c_str(), g_szSelectedWorldline == szSeq))
 		{
 			g_szSelectedWorldline = szSeq;
 
-			ResetPeaks(g_rgflMassData);
-			MarkPeaks(Worldline, g_rgflMassData);
+			ResetPeaks(&g_rgflMassData);
+			MarkPeaks(Worldline, &g_rgflMassData);
 		}
 	}
 
 	ImGui::End();
 }
 
-int main(int, char**) noexcept
+int main(int, char*[]) noexcept
 {
 	// 101 basically setup for ANY C++ project.
 	std::ios_base::sync_with_stdio(false);
@@ -227,6 +227,7 @@ int main(int, char**) noexcept
 	{
 		g_iPrecision = g_Config->GetValue<int>("Precision");
 		g_flMPlusOne = g_Config->GetValue<double>("[M+1]");
+		g_iIgnoreLevel = g_Config->GetValue<IgnoreLevel_e>("IgnoringLevel");
 		g_flMPlusTwo = M2ZConversion<1, 2>(g_flMPlusOne);
 		g_flMPlusThree = M2ZConversion<1, 3>(g_flMPlusOne);
 
@@ -324,11 +325,11 @@ int main(int, char**) noexcept
 	g_Config->SetValue("Precision", g_iPrecision);
 	g_Config->SetValue("[M+1]", g_flMPlusOne);
 	g_Config->SetValue("Peaks", g_szInputMassData);
+	g_Config->SetValue("IgnoringLevel", g_iIgnoreLevel);
 	g_Config->SaveToFile("MassHelper.cfg");
 
 	delete g_Config;
 	g_Config = nullptr;
 
-	cout_w();
 	return EXIT_SUCCESS;
 }
