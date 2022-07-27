@@ -14,9 +14,6 @@ module;
 #include <unordered_map>
 #include <vector>
 
-// C++ Exp
-#include <experimental/generator>
-
 // Others
 #include <fmt/color.h>
 #include <gcem.hpp>
@@ -40,8 +37,6 @@ using std::string;
 using std::tuple;
 using std::unordered_map;
 using std::vector;
-
-using std::experimental::generator;
 
 export enum AminoAcids_e : char
 {
@@ -823,13 +818,14 @@ void fnRecursiveFromYn(list<AlternativeReality_t>* prgWorldlines, AlternativeRea
 void PrintWorldline(const AlternativeReality_t& Worldline, const auto& rgflOriginalMassData, unsigned iDecimal) noexcept
 {
 	auto const itBegin = rgflOriginalMassData.cbegin(), itEnd = rgflOriginalMassData.cend();
+	auto const iCellLen = 6 + iDecimal;	// 4 before decimal point, 1 for decimal point, 1 space.
 
 	for (const auto& Cell : Worldline.m_Solution)
 	{
 		if (std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_bTypeIon)) != itEnd)	// #CPP23_UPGRADE
-			fmt::print("{:.{}f}\t", Cell.m_bTypeIon, iDecimal);
+			fmt::print("{0:<{2}.{1}f}", Cell.m_bTypeIon, iDecimal, iCellLen);
 		else
-			fmt::print(fg(fmt::color::red), "{:.{}f}\t", Cell.m_bTypeIon, iDecimal);
+			fmt::print(fg(fmt::color::red), "{0:<{2}.{1}f}", Cell.m_bTypeIon, iDecimal, iCellLen);
 	}
 
 	fmt::print("\n");
@@ -840,11 +836,11 @@ void PrintWorldline(const AlternativeReality_t& Worldline, const auto& rgflOrigi
 		bool byFound = std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_yTypeIon)) != itEnd;
 
 		if (bbFound && byFound)
-			fmt::print(fg(fmt::color::green), "{}{}\t", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]);
+			fmt::print(fg(fmt::color::green), "{0:<{1}}", fmt::format("{}{}", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]), iCellLen);
 		else if (bbFound || byFound)
-			fmt::print(fg(fmt::color::dark_golden_rod), "{}{}\t", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]);
+			fmt::print(fg(fmt::color::dark_golden_rod), "{0:<{1}}", fmt::format("{}{}", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]), iCellLen);
 		else
-			fmt::print(fg(fmt::color::dark_red), "{}{}\t", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]);
+			fmt::print(fg(fmt::color::dark_red), "{0:<{1}}", fmt::format("{}{}", (std::underlying_type_t<AminoAcids_e>)Cell.m_AminoAcid, g_rgpszModName[Cell.m_Modification]), iCellLen);
 	}
 
 	fmt::print("\n");
@@ -852,9 +848,9 @@ void PrintWorldline(const AlternativeReality_t& Worldline, const auto& rgflOrigi
 	for (const auto& Cell : Worldline.m_Solution)
 	{
 		if (std::find_if(itBegin, itEnd, std::bind(&MassPeak_t::Approx, std::placeholders::_1, Cell.m_yTypeIon)) != itEnd)
-			fmt::print("{:.{}f}\t", Cell.m_yTypeIon, iDecimal);
+			fmt::print("{0:<{2}.{1}f}", Cell.m_yTypeIon, iDecimal, iCellLen);
 		else
-			fmt::print(fg(fmt::color::red), "{:.{}f}\t", Cell.m_yTypeIon, iDecimal);
+			fmt::print(fg(fmt::color::red), "{0:<{2}.{1}f}", Cell.m_yTypeIon, iDecimal, iCellLen);
 	}
 
 	fmt::print(fg(fmt::color::dim_gray), "\nLeft peaks({}/{}): ", Worldline.m_PendingPeaks.size(), rgflOriginalMassData.size());
